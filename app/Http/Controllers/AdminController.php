@@ -176,13 +176,13 @@ class AdminController extends Controller
             if (!isset($absDetails[$r->employee_id])) {
                 $absDetails[$r->employee_id] = ['with_pay_days' => [], 'without_pay_days' => []];
             }
-            
+
             if (stripos($r->reason, 'without') !== false) {
                 $absReasons[$r->employee_id]['without_pay']++;
-                $absDetails[$r->employee_id]['without_pay_days'][] = $r->day;
+                $absDetails[$r->employee_id]['without_pay_days'][] = ['day' => (int)$r->day, 'reason' => $r->reason];
             } else {
                 $absReasons[$r->employee_id]['with_pay']++;
-                $absDetails[$r->employee_id]['with_pay_days'][] = $r->day;
+                $absDetails[$r->employee_id]['with_pay_days'][] = ['day' => (int)$r->day, 'reason' => $r->reason];
             }
         }
 

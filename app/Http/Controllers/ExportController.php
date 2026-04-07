@@ -73,9 +73,58 @@ class ExportController extends Controller
 
         /* ── Group by station ── */
         $byStation = [];
-        foreach ($empList as $emp)
+        foreach ($empList as $emp) {
             $byStation[$emp->station ?: 'Unassigned'][] = $emp;
+        }
         ksort($byStation);
+
+        $format = $request->input('format', 'excel');
+        $stationLabel = ($station === 'All') ? 'All_Stations' : "Station_{$station}";
+        $filenameBase = "Attendance_Report_{$stationLabel}_" . date('F_Y', mktime(0, 0, 0, $month, 1, $year));
+
+        if ($format === 'pdf' || $format === 'preview') {
+            $logoPath = public_path('logo.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+            
+            $data = [
+                'byStation'    => $byStation,
+                'year'         => $year,
+                'month'        => $month,
+                'daysInMonth'  => $daysInMonth,
+                'holidays'     => $holidays,
+                'attendance'   => $attendance,
+                'reasons'      => $reasons,
+                'statusFilter' => $statusFilter,
+                'periodCovered'=> $periodCovered,
+                'reportTitle'  => $reportTitle,
+                'request'      => $request,
+                'logoBase64'   => $logoBase64,
+            ];
+            
+            $viewName = ($statusFilter === 'all') ? 'admin.exports.attendance_pdf' : 'admin.exports.status_pdf';
+            
+            if ($format === 'preview') {
+                return response(view($viewName, $data)->render())
+                    ->header('Content-Type', 'text/html; charset=UTF-8');
+            }
+            
+            $html = view($viewName, $data)->render();
+            $dompdf = new \Dompdf\Dompdf();
+            $options = $dompdf->getOptions();
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $dompdf->setOptions($options);
+            $dompdf->setPaper('legal', 'landscape');
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+            
+            return response()->streamDownload(function () use ($dompdf) {
+                echo $dompdf->output();
+            }, "{$filenameBase}.pdf", [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
 
         /* ════════════════════════════════════════════════════════════
          *  COLUMN MAP
@@ -410,10 +459,7 @@ class ExportController extends Controller
         }
 
         /* ── File output ── */
-        $stationLabel = ($station === 'All') ? 'All_Stations' : "Station_{$station}";
-        $filenameBase = "Attendance_Report_{$stationLabel}_" . date('F_Y', mktime(0, 0, 0, $month, 1, $year));
-
-        return $this->downloadSpreadsheet($spreadsheet, $filenameBase, $request->input('format', 'excel'));
+        return $this->downloadSpreadsheet($spreadsheet, $filenameBase, $format);
     }
 
     /**
@@ -508,6 +554,45 @@ class ExportController extends Controller
         ";
         $rows = $db->select($sql, [$startOfWeek, $endOfWeek]);
 
+        $format = $request->input('format', 'excel');
+        $titlePrefix = ($statusFilter === 'all') ? 'WEEKLY ATTENDANCE' : "WEEKLY " . strtoupper($statusFilter);
+        $filenameBase = "Weekly_Attendance_{$startOfWeek}";
+
+        if ($format === 'pdf' || $format === 'preview') {
+            $logoPath = public_path('logo.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+            
+            $data = [
+                'rows'         => $rows,
+                'periodCovered'=> $periodCov,
+                'reportTitle'  => "{$titlePrefix} REPORT",
+                'request'      => $request,
+                'logoBase64'   => $logoBase64,
+            ];
+            
+            if ($format === 'preview') {
+                return response(view('admin.exports.summary_pdf', $data)->render())
+                    ->header('Content-Type', 'text/html; charset=UTF-8');
+            }
+            
+            $html = view('admin.exports.summary_pdf', $data)->render();
+            $dompdf = new \Dompdf\Dompdf();
+            $options = $dompdf->getOptions();
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $dompdf->setOptions($options);
+            $dompdf->setPaper('legal', 'landscape');
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+            
+            return response()->streamDownload(function () use ($dompdf) {
+                echo $dompdf->output();
+            }, "{$filenameBase}.pdf", [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
         $spreadsheet = new Spreadsheet();
         $ws = $spreadsheet->getActiveSheet();
         $ws->setTitle('Weekly Report');
@@ -553,8 +638,8 @@ class ExportController extends Controller
         /* ── Signatories ── */
         $this->applySignatories($ws, $rowIdx + 1, $request, 'G');
 
-        $filenameBase = "Weekly_Attendance_{$startOfWeek}";
-        return $this->downloadSpreadsheet($spreadsheet, $filenameBase, $request->input('format', 'excel'));
+        /* ── File output ── */
+        return $this->downloadSpreadsheet($spreadsheet, $filenameBase, $format);
     }
 
     /**
@@ -585,6 +670,45 @@ class ExportController extends Controller
             ORDER BY e.station, e.emp_name
         ";
         $rows = $db->select($sql, ["$year-%"]);
+
+        $format = $request->input('format', 'excel');
+        $titlePrefix = ($statusFilter === 'all') ? 'YEARLY ATTENDANCE' : "YEARLY " . strtoupper($statusFilter);
+        $filenameBase = "Yearly_Attendance_{$year}";
+
+        if ($format === 'pdf' || $format === 'preview') {
+            $logoPath = public_path('logo.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+            
+            $data = [
+                'rows'         => $rows,
+                'periodCovered'=> "JAN - DEC $year",
+                'reportTitle'  => "{$titlePrefix} REPORT",
+                'request'      => $request,
+                'logoBase64'   => $logoBase64,
+            ];
+            
+            if ($format === 'preview') {
+                return response(view('admin.exports.summary_pdf', $data)->render())
+                    ->header('Content-Type', 'text/html; charset=UTF-8');
+            }
+            
+            $html = view('admin.exports.summary_pdf', $data)->render();
+            $dompdf = new \Dompdf\Dompdf();
+            $options = $dompdf->getOptions();
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $dompdf->setOptions($options);
+            $dompdf->setPaper('legal', 'landscape');
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+            
+            return response()->streamDownload(function () use ($dompdf) {
+                echo $dompdf->output();
+            }, "{$filenameBase}.pdf", [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
 
         $spreadsheet = new Spreadsheet();
         $ws = $spreadsheet->getActiveSheet();
@@ -631,8 +755,8 @@ class ExportController extends Controller
         /* ── Signatories ── */
         $this->applySignatories($ws, $rowIdx + 1, $request, 'G');
 
-        $filenameBase = "Yearly_Attendance_{$year}";
-        return $this->downloadSpreadsheet($spreadsheet, $filenameBase, $request->input('format', 'excel'));
+        /* ── File output ── */
+        return $this->downloadSpreadsheet($spreadsheet, $filenameBase, $format);
     }
 
     /* ── Helpers ── */

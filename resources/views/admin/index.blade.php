@@ -402,6 +402,56 @@
             color: #dc2626;
         }
 
+        /* ─── Copy All Button (Profile Cell) ─── */
+        .copy-all-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 1px 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 0.6rem;
+            font-weight: 700;
+            transition: all 0.18s;
+            position: relative;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .copy-all-btn:hover {
+            background: #dbeafe;
+            color: #3b82f6;
+            border-color: #93c5fd;
+        }
+        .copy-all-btn.copied {
+            background: #dcfce7;
+            color: #16a34a;
+            border-color: #86efac;
+        }
+        .copy-all-tooltip {
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.85);
+            background: #1e293b;
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 5px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.18s ease;
+            z-index: 9999;
+        }
+        .copy-all-btn.copied .copy-all-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
         /* ─── Bento Menu Actions ─── */
         .bento-menu-wrap {
             position: relative;
@@ -1096,8 +1146,9 @@
                                 $wop = $reasons['without_pay'];
 
                                 $empAbsDetails = $absDetails[$empId] ?? ['with_pay_days' => [], 'without_pay_days' => []];
-                                $empWithPayLogs = array_map(function($d) { return ['day' => $d, 'type' => 'With Pay']; }, $empAbsDetails['with_pay_days']);
-                                $empWopLogs = array_map(function($d) { return ['day' => $d, 'type' => 'Without Pay']; }, $empAbsDetails['without_pay_days']);
+                                // empWithPayLogs / empWopLogs now expect [{day, type}] for preview modal
+                                $empWithPayLogs = array_map(function($d) { return ['day' => $d['day'], 'type' => 'With Pay']; }, $empAbsDetails['with_pay_days']);
+                                $empWopLogs = array_map(function($d) { return ['day' => $d['day'], 'type' => 'Without Pay']; }, $empAbsDetails['without_pay_days']);
 
                                 $statusClass = match (true) {
                                     $status === 'ACTIVE' => 'dot-active',
@@ -1113,6 +1164,14 @@
                                         $hasRemarks   = !empty(trim($emp->remarks ?? ''));
                                         $remarksDone  = (bool)($emp->remarks_done ?? false);
                                         $showHighlight = $hasRemarks && !$remarksDone;
+
+                                        // Build copy data — only with/without pay absences with their reasons
+                                        $copyWpDays  = array_values($empAbsDetails['with_pay_days']);    // [{day, reason}]
+                                        $copyWopDays = array_values($empAbsDetails['without_pay_days']); // [{day, reason}]
+                                        $copyAllData = json_encode([
+                                            'with_pay'    => $copyWpDays,
+                                            'without_pay' => $copyWopDays,
+                                        ]);
                                     @endphp
                                     <div class="emp-profile-name {{ $showHighlight ? 'has-remarks' : '' }}" style="position:relative;">
                                         {{ $emp->last_name ?? '' }}, {{ $emp->first_name ?? '' }} {{ $emp->middle_name ? substr(trim($emp->middle_name), 0, 1) . '.' : '' }}
@@ -1121,10 +1180,18 @@
                                             <span class="remarks-tooltip">{{ $emp->remarks }}</span>
                                         @endif
                                     </div>
-                                    <div class="emp-profile-id">ID: {{ $emp->emp_number ?? 'N/A' }}</div>
-                                    @if($emp->station)
-                                        <span class="emp-station-badge">{{ $emp->station }}</span>
-                                    @endif
+                                    <div style="display:flex; align-items:center; gap:5px; margin-top:2px; flex-wrap:wrap;">
+                                        <div class="emp-profile-id">ID: {{ $emp->emp_number ?? 'N/A' }}</div>
+                                        @if($emp->station)
+                                            <span class="emp-station-badge">{{ $emp->station }}</span>
+                                        @endif
+                                        <button type="button" class="copy-all-btn" title="Copy all attendance dates"
+                                            data-copy-all='{{ $copyAllData }}'
+                                            onclick="copyAllAttendance(this)">
+                                            <i class="fas fa-copy"></i> Copy
+                                            <span class="copy-all-tooltip">Copied!</span>
+                                        </button>
+                                    </div>
                                 </td>
 
                                 {{-- Status & Time --}}
@@ -1287,17 +1354,6 @@
                                                 onclick="openActionsModal('{{ $empId }}', this.getAttribute('data-name'), this.getAttribute('data-remarks'), this.getAttribute('data-remarks-done'))">  
                                                 <i class="fas fa-calendar-check"></i>
                                                 <span>Attendance</span>
-                                            </button>
-                                            <button class="bento-item bento-edit" title="Edit Details"
-                                                data-time="{{ $emp->official_time ?? '' }}"
-                                                onclick="openEditModal('{{ $empId }}', '{{ $status }}', this.getAttribute('data-time'))">
-                                                <i class="fas fa-user-edit"></i>
-                                            </button>
-                                            <button class="bento-item bento-delete" title="Delete"
-                                                data-name="{{ $emp->last_name }}, {{ $emp->first_name }} {{ $emp->middle_name ? substr(trim($emp->middle_name), 0, 1) . '.' : '' }}"
-                                                onclick="confirmDelete('{{ $empId }}', this.getAttribute('data-name'))">
-                                                <i class="fas fa-trash-alt"></i>
-                                                <span>Delete</span>
                                             </button>
                                             <button class="bento-item bento-print" title="Individual Report Preview"
                                                 data-id="{{ $empId }}"
@@ -1581,7 +1637,7 @@
                 </div>
 
                 {{-- Late Section --}}
-                <div id="lateSection" class="action-tab-content">
+                <div id="lateSection" class="action-tab-content" style="display:flex; flex-direction:column;">
                     <div class="form-group">
                         <label style="display:flex;align-items:center;justify-content:space-between;">
                             <span>Date(s) & Minutes <span id="late_date_count" style="color:#64748b;font-weight:500;font-size:0.75rem;">(0 total mins)</span></span>
@@ -1589,12 +1645,21 @@
                                 <i class="fas fa-plus"></i> Add
                             </button>
                         </label>
-                        <div id="lateDateRows" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;padding-right:2px;"></div>
+                        <div id="lateDateRows" style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;padding-right:2px;"></div>
+                    </div>
+                    {{-- Tardy History --}}
+                    <div style="border-top:1.5px dashed #fed7aa; padding-top:8px; margin-top:4px; flex:1; overflow:hidden; display:flex; flex-direction:column;">
+                        <div style="font-size:0.68rem; font-weight:800; color:#b45309; text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                            <i class="fas fa-history"></i> Tardy History
+                        </div>
+                        <div id="lateHistoryList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-right:2px; max-height:140px;">
+                            <div style="color:#94a3b8;font-size:0.75rem;text-align:center;padding:10px 0;">Loading...</div>
+                        </div>
                     </div>
                 </div>
 
                 {{-- Undertime Section --}}
-                <div id="utSection" class="action-tab-content" style="display:none;">
+                <div id="utSection" class="action-tab-content" style="display:none; flex-direction:column;">
                     <div class="form-group">
                         <label style="display:flex;align-items:center;justify-content:space-between;">
                             <span>Date(s) & Minutes <span id="ut_date_count" style="color:#64748b;font-weight:500;font-size:0.75rem;">(0 total mins)</span></span>
@@ -1607,13 +1672,14 @@
                 </div>
 
                 {{-- Absent Section --}}
-                <div id="absentSection" class="action-tab-content" style="display:none;">
+                <div id="absentSection" class="action-tab-content" style="display:none; flex-direction:column;">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Pay Type</label>
                             <select name="pay_type">
+                                <option value="" disabled selected>[Choose]</option>
                                 <option value="Absence with pay">With Pay</option>
-                                <option value="Absence without pay" selected>Without Pay</option>
+                                <option value="Absence without pay">Without Pay</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1629,17 +1695,26 @@
                             </button>
                         </label>
                         <div id="absHiddenDates"></div>
-                        <div id="absSelectedChips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;min-height:40px;padding:8px;border:1.5px dashed #e2e8f0;border-radius:12px;background:#f8fafc;">
+                        <div id="absSelectedChips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;min-height:36px;padding:6px;border:1.5px dashed #e2e8f0;border-radius:12px;background:#f8fafc;">
                             <span style="color:#94a3b8;font-size:0.78rem;align-self:center;">No dates selected yet</span>
+                        </div>
+                    </div>
+                    {{-- Absent History --}}
+                    <div style="border-top:1.5px dashed #fecaca; padding-top:8px; margin-top:4px; flex:1; overflow:hidden; display:flex; flex-direction:column;">
+                        <div style="font-size:0.68rem; font-weight:800; color:#991b1b; text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                            <i class="fas fa-history"></i> Absence History
+                        </div>
+                        <div id="absHistoryList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-right:2px; max-height:120px;">
+                            <div style="color:#94a3b8;font-size:0.75rem;text-align:center;padding:10px 0;">Loading...</div>
                         </div>
                     </div>
                 </div>
 
                 {{-- Present Section --}}
-                <div id="presentFormSection" class="action-tab-content" style="display:none;">
+                <div id="presentFormSection" class="action-tab-content" style="display:none; flex-direction:column;">
                     <div style="background:#f0f9ff; padding:15px; border-radius:12px; margin-bottom:16px; border:1px solid #bae6fd;">
                         <p style="color:#0369a1; font-size:0.85rem; margin:0; line-height:1.5; font-weight:600;">
-                            <i class="fas fa-info-circle"></i> Marks employee present for all working days of the chosen month. 
+                            <i class="fas fa-info-circle"></i> Marks employee present for all working days of the chosen month.
                         </p>
                     </div>
                     <div class="form-row">
@@ -1652,6 +1727,15 @@
                                     <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                    </div>
+                    {{-- All History --}}
+                    <div style="border-top:1.5px dashed #d1d5db; padding-top:8px; margin-top:4px; flex:1; overflow:hidden; display:flex; flex-direction:column;">
+                        <div style="font-size:0.68rem; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                            <i class="fas fa-history"></i> All Attendance History
+                        </div>
+                        <div id="allHistoryList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-right:2px; max-height:160px;">
+                            <div style="color:#94a3b8;font-size:0.75rem;text-align:center;padding:10px 0;">Loading...</div>
                         </div>
                     </div>
                 </div>
@@ -2900,20 +2984,33 @@
             }
         }
 
-        // showActionTab – controls which tab panel is visible and loads remarks history on demand
+        // showActionTab – controls which tab panel is visible and loads history on demand
         function showActionTab(tab) {
             // Hide all sections
             document.querySelectorAll('.action-tab-content').forEach(el => el.style.display = 'none');
 
-            if (tab === 'late') document.getElementById('lateSection').style.display = 'block';
-            else if (tab === 'undertime') document.getElementById('utSection').style.display = 'block';
-            else if (tab === 'absent') document.getElementById('absentSection').style.display = 'block';
-            else if (tab === 'present') document.getElementById('presentFormSection').style.display = 'block';
+            const empId = window._currentRemarksEmpId;
+
+            if (tab === 'late') {
+                document.getElementById('lateSection').style.display = 'flex';
+                if (empId) loadAttendanceHistory(empId, 'late', 'lateHistoryList');
+            }
+            else if (tab === 'undertime') {
+                document.getElementById('utSection').style.display = 'flex';
+                if (empId) loadAttendanceHistory(empId, 'undertime', 'utHistoryList');
+            }
+            else if (tab === 'absent') {
+                document.getElementById('absentSection').style.display = 'flex';
+                if (empId) loadAttendanceHistory(empId, 'absent', 'absHistoryList');
+            }
+            else if (tab === 'present') {
+                document.getElementById('presentFormSection').style.display = 'flex';
+                if (empId) loadAttendanceHistory(empId, 'all', 'allHistoryList');
+            }
             else if (tab === 'remarks') {
                 const sec = document.getElementById('remarksSection');
                 sec.style.display = 'flex';
-                // Load history
-                if (window._currentRemarksEmpId) loadRemarksHistory(window._currentRemarksEmpId);
+                if (empId) loadRemarksHistory(empId);
             }
 
             // Save All button visibility
@@ -2923,6 +3020,72 @@
             document.querySelectorAll('.att-tab').forEach(btn => btn.classList.remove('active'));
             const targetTab = document.querySelector('.tab-' + tab);
             if (targetTab) targetTab.classList.add('active');
+        }
+
+        async function loadAttendanceHistory(empId, filter, listId) {
+            const list = document.getElementById(listId);
+            if (!list) return;
+            list.innerHTML = '<div style="color:#94a3b8;font-size:0.75rem;text-align:center;padding:8px 0;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+            const month = {{ $month }};
+            const year  = {{ $year }};
+            const pad = n => String(n).padStart(2, '0');
+            const lastDay = new Date(year, month, 0).getDate();
+            const start = `${year}-${pad(month)}-01`;
+            const end   = `${year}-${pad(month)}-${pad(lastDay)}`;
+
+            try {
+                const res = await fetch(`{{ route('api.individual.summary') }}?emp_id=${empId}&start_date=${start}&end_date=${end}`);
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message);
+
+                const data = result.data;
+                let entries = [];
+
+                if (filter === 'absent' || filter === 'all') {
+                    (data.absent_detailed || []).forEach(a => {
+                        const clean = (a.type || '')
+                            .replace(/^absence\s+(with|without)\s+pay\s*[-–]?\s*/i, '')
+                            .replace(/^(with|without)\s+pay\s*[-–]?\s*/i, '')
+                            .trim();
+                        const isWop = /without/i.test(a.type || '');
+                        entries.push({ day: a.day, label: isWop ? 'Without Pay' : 'With Pay', detail: clean || '—', color: isWop ? '#991b1b' : '#166534', bg: isWop ? '#fee2e2' : '#dcfce7', icon: 'fa-user-slash' });
+                    });
+                }
+                if (filter === 'late' || filter === 'all') {
+                    (data.late_logs || []).forEach(l => {
+                        entries.push({ day: l.day, label: 'Tardy', detail: `${l.mins} mins`, color: '#b45309', bg: '#fef3c7', icon: 'fa-sign-in-alt' });
+                    });
+                }
+                if (filter === 'undertime' || filter === 'all') {
+                    (data.ut_logs || []).forEach(u => {
+                        entries.push({ day: u.day, label: 'Undertime', detail: `${u.mins} mins`, color: '#0369a1', bg: '#e0f2fe', icon: 'fa-sign-out-alt' });
+                    });
+                }
+
+                if (!entries.length) {
+                    list.innerHTML = '<div style="color:#94a3b8;font-size:0.75rem;text-align:center;padding:10px 0;"><i class="fas fa-check-circle" style="opacity:0.35;margin-right:4px;"></i>No records this month.</div>';
+                    return;
+                }
+
+                entries.sort((a, b) => a.day - b.day);
+
+                list.innerHTML = entries.map(e => `
+                    <div style="display:flex;gap:8px;align-items:center;padding:7px 10px;border-radius:8px;background:${e.bg};">
+                        <div style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:${e.color};display:flex;align-items:center;justify-content:center;color:white;font-size:0.65rem;">
+                            <i class="fas ${e.icon}"></i>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <span style="font-size:0.78rem;color:${e.color};font-weight:800;">Day ${e.day}</span>
+                            <span style="font-size:0.72rem;color:${e.color};font-weight:600;margin-left:6px;opacity:0.85;">${e.label}</span>
+                            ${e.detail ? `<span style="font-size:0.68rem;color:${e.color};opacity:0.7;margin-left:6px;">— ${e.detail}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch(err) {
+                list.innerHTML = '<div style="color:#ef4444;font-size:0.75rem;text-align:center;padding:8px 0;">Failed to load.</div>';
+            }
         }
 
         async function saveRemarks() {
@@ -3783,6 +3946,71 @@
         fetchWeather();
         // Refresh weather every 30 minutes
         setInterval(fetchWeather, 30 * 60 * 1000);
+
+        /* ── Copy Absence Dates (With Pay + Without Pay only, with reasons) ────── */
+        function copyAllAttendance(btn) {
+            let data;
+            try { data = JSON.parse(btn.dataset.copyAll || '{}'); } catch(e) { return; }
+
+            const currentMonth = {{ $month }};
+            const currentYear  = {{ $year }};
+            const shortYear = String(currentYear).slice(-2);
+
+            const lines = [];
+
+            // Helper: format a group of {day, reason} entries
+            // First occurrence of a new reason gets  REASON-DATE, subsequent same-reason entries get bare DATE
+            function formatGroup(label, entries) {
+                if (!entries || entries.length === 0) return;
+                const sorted = [...entries].sort((a, b) => a.day - b.day);
+
+                let lastReason = null;
+                const parts = sorted.map(e => {
+                    const dateStr = `${currentMonth}/${e.day}/${shortYear}`;
+                    const reason = (e.reason || '')
+                        .replace(/^absence\s+(with|without)\s+pay\s*[-–]?\s*/i, '')
+                        .replace(/^(with|without)\s+pay\s*[-–]?\s*/i, '')
+                        .trim();
+
+                    let token;
+                    if (reason && reason !== lastReason) {
+                        // New reason — show it hyphenated to the date
+                        token = `${reason}-${dateStr}`;
+                        lastReason = reason;
+                    } else {
+                        // Same reason (or no reason) — bare date only
+                        token = dateStr;
+                    }
+                    return token;
+                });
+
+                lines.push(`${label}: ${parts.join('; ')}`);
+            }
+
+            formatGroup('With Pay', data.with_pay || []);
+            formatGroup('Without Pay', data.without_pay || []);
+
+            if (!lines.length) return;
+            const text = lines.join('\n');
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => flashCopied(btn));
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;opacity:0;';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                flashCopied(btn);
+            }
+        }
+
+        function flashCopied(btn) {
+            btn.classList.add('copied');
+            setTimeout(() => btn.classList.remove('copied'), 1400);
+        }
     </script>
     <script type="application/json" id="empIdsData">
         {!! json_encode(collect($employees)->filter(function($emp) { return ($emp->status ?? 'ACTIVE') === 'ACTIVE'; })->pluck('id')->values()) !!}

@@ -4,435 +4,687 @@
 
 @section('styles')
 <style>
-    /* ── Animations ── */
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(15px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
-    
-    .animate-fade {
-        animation: fadeInUp 0.5s ease backwards;
+    .animate-fade { animation: fadeInUp 0.45s ease both; }
+
+    /* ── Layout ── */
+    .rp-page {
+        padding: 28px 36px;
+        max-width: 1400px;
     }
 
-    /* ── Header ── */
-    .page-header {
+    /* ── Page Header ── */
+    .rp-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        padding: 0 0 20px 0;
+        padding-bottom: 24px;
+        border-bottom: 1.5px solid #f1f5f9;
+        margin-bottom: 30px;
     }
-    .page-header h1 {
-        font-family: 'Outfit', sans-serif;
-        font-size: 1.8rem;
+    .rp-header h1 {
+        font-size: 1.75rem;
+        font-weight: 850;
+        color: #0f172a;
+        margin: 0 0 4px;
+    }
+    .rp-header p {
+        color: #64748b;
+        font-size: 0.84rem;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    /* ── Section Labels ── */
+    .rp-section-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .rp-section-label h2 {
+        font-size: 1rem;
         font-weight: 800;
         color: #1e293b;
         margin: 0;
     }
-    .page-header p {
-        color: #64748b;
-        font-size: 0.85rem;
-        margin: 4px 0 0 0;
+    .rp-section-label p {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin: 0;
         font-weight: 500;
     }
-
-    /* ── Cards ── */
-    .reports-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 20px;
-        margin-top: 10px;
+    .rp-section-pill {
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: #f1f5f9;
+        color: #475569;
     }
 
-    .report-card {
+    /* ── Grid ── */
+    .rp-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 18px;
+        margin-bottom: 36px;
+    }
+
+    /* ── Card ── */
+    .rp-card {
         background: white;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        border: 1px solid #f1f5f9;
+        border-radius: 22px;
+        border: 1.5px solid #f1f5f9;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.22s, box-shadow 0.22s;
+        position: relative;
+    }
+    .rp-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.08);
     }
 
-    .report-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 25px rgba(0,0,0,0.06);
+    /* Top accent stripe */
+    .rp-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+    }
+    .stripe-blue::before   { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .stripe-orange::before { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .stripe-green::before  { background: linear-gradient(90deg, #10b981, #34d399); }
+    .stripe-red::before    { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .stripe-amber::before  { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .stripe-violet::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+
+    .rp-card-body {
+        padding: 22px 22px 16px;
+        flex: 1;
     }
 
-    .report-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 14px;
+    .rp-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.4rem;
-        margin-bottom: 20px;
+        font-size: 1.25rem;
+        margin-bottom: 14px;
     }
+    .ic-blue   { background: #eff6ff; color: #3b82f6; }
+    .ic-orange { background: #fff7ed; color: #f97316; }
+    .ic-green  { background: #f0fdf4; color: #10b981; }
+    .ic-red    { background: #fef2f2; color: #ef4444; }
+    .ic-amber  { background: #fffbeb; color: #d97706; }
+    .ic-violet { background: #f5f3ff; color: #7c3aed; }
 
-    .icon-blue { background: #eff6ff; color: #3b82f6; }
-    .icon-green { background: #f0fdf4; color: #10b981; }
-    .icon-orange { background: #fff7ed; color: #f97316; }
-
-    .report-title {
-        font-family: 'Outfit', sans-serif;
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin: 0 0 8px 0;
+    .rp-card-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 6px;
     }
-
-    .report-desc {
-        font-size: 0.82rem;
+    .rp-card-desc {
+        font-size: 0.78rem;
         color: #64748b;
-        line-height: 1.5;
-        flex: 1;
-        margin-bottom: 24px;
+        line-height: 1.55;
+        margin: 0;
     }
 
-    .report-btn {
+    /* ── Format Chooser Footer ── */
+    .rp-card-footer {
+        padding: 14px 22px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .rp-format-label {
+        font-size: 0.62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #94a3b8;
+        margin-bottom: 2px;
+    }
+
+    .rp-format-btns {
+        display: flex;
+        gap: 8px;
+    }
+
+    .rp-fmt-btn {
+        flex: 1;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 10px 18px;
+        gap: 7px;
+        padding: 9px 14px;
+        border-radius: 11px;
+        border: 1.5px solid transparent;
+        font-size: 0.76rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.18s;
+        font-family: inherit;
+    }
+    .rp-fmt-btn i { font-size: 0.9rem; }
+
+    /* Excel button */
+    .rp-fmt-excel {
+        background: #f0fdf4;
+        color: #166534;
+        border-color: #bbf7d0;
+    }
+    .rp-fmt-excel:hover {
+        background: #16a34a;
+        color: white;
+        border-color: #16a34a;
+        box-shadow: 0 4px 14px rgba(22,163,74,0.25);
+        transform: translateY(-1px);
+    }
+
+    /* PDF button */
+    .rp-fmt-pdf {
+        background: #fef2f2;
+        color: #991b1b;
+        border-color: #fecaca;
+    }
+    .rp-fmt-pdf:hover {
+        background: #dc2626;
+        color: white;
+        border-color: #dc2626;
+        box-shadow: 0 4px 14px rgba(220,38,38,0.25);
+        transform: translateY(-1px);
+    }
+
+    /* Preview link */
+    .rp-preview-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 7px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
         background: #f8fafc;
         color: #475569;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         font-weight: 700;
-        text-decoration: none;
-        transition: all 0.2s;
         cursor: pointer;
+        transition: all 0.18s;
+        font-family: inherit;
         width: 100%;
-        text-align: center;
     }
-
-    .report-btn:hover {
-        background: #3b82f6;
+    .rp-preview-btn:hover {
+        background: #0ea5e9;
         color: white;
-        border-color: #3b82f6;
+        border-color: #0ea5e9;
     }
 
-    /* ── Spotlight Cards Premium ── */
-    .spotlight-card {
-        border: 1px solid #f1f5f9;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
+    /* ── Config Modal ── */
+    .rc-modal-content {
+        border-radius: 28px !important;
+        border: none !important;
+        box-shadow: 0 40px 80px -20px rgba(0,0,0,0.3) !important;
         overflow: hidden;
     }
-    .spotlight-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    .rc-modal-header {
+        padding: 24px 32px 16px;
+        border-bottom: 1.5px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .spotlight-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 4px;
-        opacity: 0.8;
+    .rc-modal-body {
+        padding: 20px 32px 0;
     }
-    .spotlight-present::before { background: linear-gradient(90deg, #10b981, #34d399); }
-    .spotlight-absent::before { background: linear-gradient(90deg, #ef4444, #f87171); }
-    .spotlight-late::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    .spotlight-undertime::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .rc-modal-footer {
+        padding: 16px 32px 24px;
+        background: white;
+        border-top: 1.5px solid #f1f5f9;
+    }
 
-    .spotlight-icon-wrap {
-        width: 54px; height: 54px;
+    /* Format badge shown in modal header */
+    .rc-format-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border-radius: 50px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        margin-top: 6px;
+    }
+    .badge-excel { background: #dcfce7; color: #166534; }
+    .badge-pdf   { background: #fee2e2; color: #991b1b; }
+    .badge-preview { background: #e0f2fe; color: #075985; }
+
+    /* Signatory boxes */
+    .sig-box {
+        padding: 16px;
         border-radius: 16px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
+        height: 100%;
     }
-    .spotlight-icon-wrap::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        filter: blur(12px);
-        opacity: 0.4;
-        z-index: -1;
+    .sig-box-prep { background: #f8fafc; border: 1.5px solid #e2e8f0; }
+    .sig-box-cert { background: #f0fdf4; border: 1.5px solid #dcfce7; }
+    .sig-box-ver  { background: #eff6ff; border: 1.5px solid #dbeafe; }
+    .sig-box h6 {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 12px;
     }
-    .spotlight-present .spotlight-icon-wrap { background: #ecfdf5; color: #059669; }
-    .spotlight-present .spotlight-icon-wrap::after { background: #10b981; }
-    .spotlight-absent .spotlight-icon-wrap { background: #fef2f2; color: #dc2626; }
-    .spotlight-absent .spotlight-icon-wrap::after { background: #ef4444; }
-    .spotlight-late .spotlight-icon-wrap { background: #fffbeb; color: #d97706; }
-    .spotlight-late .spotlight-icon-wrap::after { background: #f59e0b; }
-    .spotlight-undertime .spotlight-icon-wrap { background: #f5f3ff; color: #7c3aed; }
-    .spotlight-undertime .spotlight-icon-wrap::after { background: #8b5cf6; }
+    .sig-box-prep h6 { color: #475569; }
+    .sig-box-cert h6 { color: #166534; }
+    .sig-box-ver  h6 { color: #1e40af; }
 
-    /* ── Decorative Layout ── */
-    .dashboard-layout {
-        padding: 28px 36px;
+    .sig-input {
+        width: 100%;
+        padding: 7px 12px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.18s, box-shadow 0.18s;
+        color: #1e293b;
+        margin-bottom: 8px;
+        background: white;
+    }
+    .sig-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .sig-input::placeholder { font-weight: 500; color: #94a3b8; }
+    .sig-input.uppercase { text-transform: uppercase; }
+
+    .sig-lbl {
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    /* Generate button */
+    .rc-gen-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 28px;
+        border-radius: 13px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+    .rc-gen-btn-excel {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 4px 14px rgba(16,185,129,0.3);
+    }
+    .rc-gen-btn-pdf {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 4px 14px rgba(239,68,68,0.3);
+    }
+    .rc-gen-btn-preview {
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        color: white;
+        box-shadow: 0 4px 14px rgba(14,165,233,0.3);
+    }
+    .rc-gen-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
     }
 </style>
 @endsection
 
 @section('content')
-<div class="dashboard-layout">
-    <div class="page-header animate-fade" style="animation-delay: 0s;">
+<div class="rp-page">
+
+    {{-- ── Page Header ── --}}
+    <div class="rp-header animate-fade" style="animation-delay:0s;">
         <div>
-            <h1>System Reports</h1>
-            <p>Generate, download, and analyze administrative insights</p>
+            <h1><i class="fas fa-chart-bar" style="color:#3b82f6;margin-right:10px;font-size:1.4rem;"></i>System Reports</h1>
+            <p>Generate and download attendance reports — choose Excel or PDF for each report type.</p>
         </div>
     </div>
 
-    <div style="margin-bottom: 25px;">
-        <h2 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 5px;">General Summaries</h2>
-        <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 15px;">Full overview reports containing all attendance metrics.</p>
+    {{-- ══ GENERAL SUMMARIES ══ --}}
+    <div class="rp-section-label animate-fade" style="animation-delay:0.05s;">
+        <div>
+            <h2>General Summaries</h2>
+            <p>Full overview reports for all employees across different time spans.</p>
+        </div>
+        <span class="rp-section-pill">Monthly · Weekly · Yearly</span>
     </div>
 
-    <div class="reports-grid">
-        <!-- Report 1: Attendance Log -->
-        <div class="report-card animate-fade" style="animation-delay: 0.1s;">
-            <div class="report-icon icon-blue">
-                <i class="fas fa-calendar-check"></i>
+    <div class="rp-grid">
+
+        {{-- Monthly --}}
+        <div class="rp-card stripe-blue animate-fade" style="animation-delay:0.1s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-blue"><i class="fas fa-calendar-check"></i></div>
+                <h3 class="rp-card-title">Monthly Attendance</h3>
+                <p class="rp-card-desc">Detailed daily attendance for all employees in a selected month — includes counts, tardiness, absences, and metrics.</p>
             </div>
-            <h3 class="report-title">Monthly Attendance Summary</h3>
-            <p class="report-desc">Comprehensive spreadsheet containing detailed daily attendance counts, total tardiness, absences, and log metrics for all registered employees.</p>
-            <div class="d-flex gap-2">
-                <button onclick="openReportConfig('monthly', 'ALL', 'preview')" class="report-btn" style="flex: 1;">
-                    <i class="fas fa-eye text-info"></i> Preview
-                </button>
-                <div class="dropdown" style="flex: 1;">
-                    <button class="report-btn dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-download"></i> Export
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('monthly','ALL','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
                     </button>
-                    <ul class="dropdown-menu w-100 border-0 shadow-sm" style="border-radius:12px; padding:8px;">
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('monthly', 'ALL', 'excel')" style="padding:8px 16px;"><i class="fas fa-file-excel text-success" style="width:20px;"></i> Excel (.xlsx)</a></li>
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('monthly', 'ALL', 'pdf')" style="padding:8px 16px;"><i class="fas fa-file-pdf text-danger" style="width:20px;"></i> PDF Document</a></li>
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('monthly', 'ALL', 'docx')" style="padding:8px 16px;"><i class="fas fa-file-word text-primary" style="width:20px;"></i> Word (.doc)</a></li>
-                    </ul>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('monthly','ALL','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
                 </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('monthly','ALL','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
             </div>
         </div>
 
-        <!-- Report 2: Weekly Attendance Log -->
-        <div class="report-card animate-fade" style="animation-delay: 0.2s;">
-            <div class="report-icon icon-orange">
-                <i class="fas fa-calendar-week"></i>
+        {{-- Weekly --}}
+        <div class="rp-card stripe-orange animate-fade" style="animation-delay:0.15s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-orange"><i class="fas fa-calendar-week"></i></div>
+                <h3 class="rp-card-title">Weekly Attendance</h3>
+                <p class="rp-card-desc">Lightweight weekly summary showing present/absent tallies for all employees across the selected week.</p>
             </div>
-            <h3 class="report-title">Weekly Attendance Summary</h3>
-            <p class="report-desc">Generates a quick, lightweight CSV spreadsheet showing present and absent day tallies across the current week.</p>
-            <div class="d-flex gap-2">
-                <button onclick="openReportConfig('weekly', 'ALL', 'preview')" class="report-btn" style="flex: 1;">
-                    <i class="fas fa-eye text-info"></i> Preview
-                </button>
-                <div class="dropdown" style="flex: 1;">
-                    <button class="report-btn dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-download"></i> Export
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('weekly','ALL','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
                     </button>
-                    <ul class="dropdown-menu w-100 border-0 shadow-sm" style="border-radius:12px; padding:8px;">
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('weekly', 'ALL', 'excel')" style="padding:8px 16px;"><i class="fas fa-file-excel text-success" style="width:20px;"></i> Excel (.xlsx)</a></li>
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('weekly', 'ALL', 'pdf')" style="padding:8px 16px;"><i class="fas fa-file-pdf text-danger" style="width:20px;"></i> PDF Document</a></li>
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('weekly', 'ALL', 'docx')" style="padding:8px 16px;"><i class="fas fa-file-word text-primary" style="width:20px;"></i> Word (.doc)</a></li>
-                    </ul>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('weekly','ALL','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
                 </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('weekly','ALL','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
             </div>
         </div>
 
-        <!-- Report 3: Yearly Attendance Log -->
-        <div class="report-card animate-fade" style="animation-delay: 0.3s;">
-            <div class="report-icon icon-green">
-                <i class="fas fa-calendar-alt"></i>
+        {{-- Yearly --}}
+        <div class="rp-card stripe-green animate-fade" style="animation-delay:0.2s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-green"><i class="fas fa-calendar-alt"></i></div>
+                <h3 class="rp-card-title">Yearly Attendance</h3>
+                <p class="rp-card-desc">Annual summary listing total presence, lates, undertimes, and absences per employee for the full year.</p>
             </div>
-            <h3 class="report-title">Yearly Attendance Summary</h3>
-            <p class="report-desc">Comprehensive annual CSV listing total presence, lateness, undertimes, and absences for the entire year per employee.</p>
-            <div class="d-flex gap-2">
-                <button onclick="openReportConfig('yearly', 'ALL', 'preview')" class="report-btn" style="flex: 1;">
-                    <i class="fas fa-eye text-info"></i> Preview
-                </button>
-                <div class="dropdown" style="flex: 1;">
-                    <button class="report-btn dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-download"></i> Export
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('yearly','ALL','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
                     </button>
-                    <ul class="dropdown-menu w-100 border-0 shadow-sm" style="border-radius:12px; padding:8px;">
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('yearly', 'ALL', 'excel')" style="padding:8px 16px;"><i class="fas fa-file-excel text-success" style="width:20px;"></i> Excel (.xlsx)</a></li>
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('yearly', 'ALL', 'pdf')" style="padding:8px 16px;"><i class="fas fa-file-pdf text-danger" style="width:20px;"></i> PDF Document</a></li>
-                        <li><a class="dropdown-item rounded" href="javascript:void(0)" onclick="openReportConfig('yearly', 'ALL', 'docx')" style="padding:8px 16px;"><i class="fas fa-file-word text-primary" style="width:20px;"></i> Word (.doc)</a></li>
-                    </ul>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('yearly','ALL','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
                 </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('yearly','ALL','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
             </div>
         </div>
+
     </div>
 
-    <!-- Status-Specific Reports Section -->
-    <div style="margin: 40px 0 25px;">
-        <h2 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 5px;">Status Spotlight Reports</h2>
-        <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 15px;">Filtered reports focusing on specific attendance categories.</p>
+    {{-- ══ STATUS SPOTLIGHT ══ --}}
+    <div class="rp-section-label animate-fade" style="animation-delay:0.25s;">
+        <div>
+            <h2>Status Spotlight Reports</h2>
+            <p>Filtered reports focused on specific attendance categories.</p>
+        </div>
+        <span class="rp-section-pill">Filtered</span>
     </div>
 
-    <div class="reports-grid">
-        <!-- Present Report -->
-        <div class="report-card spotlight-card spotlight-present animate-fade" style="animation-delay: 0.4s;">
-            <div class="spotlight-icon-wrap">
-                <i class="fas fa-check-circle"></i>
+    <div class="rp-grid">
+
+        {{-- Present --}}
+        <div class="rp-card stripe-green animate-fade" style="animation-delay:0.3s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-green"><i class="fas fa-check-circle"></i></div>
+                <h3 class="rp-card-title">Present Employees</h3>
+                <p class="rp-card-desc">Lists only employees who were present during the selected period — ideal for active verification and counting.</p>
             </div>
-            <h3 class="report-title">Present Employees</h3>
-            <p class="report-desc">Lists only employees who were present during the selected period. Ideal for verification and basic active counting.</p>
-            @include('admin.partials.report_dropdown', ['status' => 'present'])
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('monthly','present','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('monthly','present','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('monthly','present','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
+            </div>
         </div>
 
-        <!-- Absent Report -->
-        <div class="report-card spotlight-card spotlight-absent animate-fade" style="animation-delay: 0.5s;">
-            <div class="spotlight-icon-wrap">
-                <i class="fas fa-times-circle"></i>
+        {{-- Absent --}}
+        <div class="rp-card stripe-red animate-fade" style="animation-delay:0.35s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-red"><i class="fas fa-times-circle"></i></div>
+                <h3 class="rp-card-title">Absence Records</h3>
+                <p class="rp-card-desc">Detailed logs of employees who missed work — includes absence counts and specific dates where applicable.</p>
             </div>
-            <h3 class="report-title">Absence Records</h3>
-            <p class="report-desc">Detailed logs of employees who missed work, including counts and specific absence dates where applicable.</p>
-            @include('admin.partials.report_dropdown', ['status' => 'absent'])
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('monthly','absent','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('monthly','absent','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('monthly','absent','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
+            </div>
         </div>
 
-        <!-- Late Report -->
-        <div class="report-card spotlight-card spotlight-late animate-fade" style="animation-delay: 0.6s;">
-            <div class="spotlight-icon-wrap">
-                <i class="fas fa-clock"></i>
+        {{-- Late --}}
+        <div class="rp-card stripe-amber animate-fade" style="animation-delay:0.4s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-amber"><i class="fas fa-clock"></i></div>
+                <h3 class="rp-card-title">Tardiness Reports</h3>
+                <p class="rp-card-desc">Focuses on employees with late arrivals — tracks total lates and minutes delayed for performance reviews.</p>
             </div>
-            <h3 class="report-title">Tardiness Reports</h3>
-            <p class="report-desc">Focuses on employees with late arrivals. Tracks total lates and minutes delayed for performance reviews.</p>
-            @include('admin.partials.report_dropdown', ['status' => 'late'])
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('monthly','late','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('monthly','late','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('monthly','late','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
+            </div>
         </div>
 
-        <!-- Undertime Report -->
-        <div class="report-card spotlight-card spotlight-undertime animate-fade" style="animation-delay: 0.7s;">
-            <div class="spotlight-icon-wrap">
-                <i class="fas fa-hourglass-half"></i>
+        {{-- Undertime --}}
+        <div class="rp-card stripe-violet animate-fade" style="animation-delay:0.45s;">
+            <div class="rp-card-body">
+                <div class="rp-icon ic-violet"><i class="fas fa-hourglass-half"></i></div>
+                <h3 class="rp-card-title">Undertime Logs</h3>
+                <p class="rp-card-desc">Monitors employees who left before their shift ended — summarizes undertime instances for compensation tracking.</p>
             </div>
-            <h3 class="report-title">Undertime Logs</h3>
-            <p class="report-desc">Monitors employees who left before their shift ended. Summarizes undertime instances for compensation tracking.</p>
-            @include('admin.partials.report_dropdown', ['status' => 'undertime'])
+            <div class="rp-card-footer">
+                <div class="rp-format-label">Choose Format</div>
+                <div class="rp-format-btns">
+                    <button class="rp-fmt-btn rp-fmt-excel" onclick="openReportConfig('monthly','undertime','excel')">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="rp-fmt-btn rp-fmt-pdf" onclick="openReportConfig('monthly','undertime','pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+                <button class="rp-preview-btn" onclick="openReportConfig('monthly','undertime','preview')">
+                    <i class="fas fa-eye"></i> Preview in Browser
+                </button>
+            </div>
         </div>
+
     </div>
 </div>
 
-<!-- Signatory Configuration Modal -->
+{{-- ══ CONFIG MODAL ══ --}}
 <div class="modal fade" id="reportConfigModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 90%; width: 1100px;">
-        <div class="modal-content" style="border-radius: 35px; border: none; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.35); overflow: hidden;">
-            <div class="modal-header border-0 pb-0" style="padding: 24px 35px 10px;">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="width: 48px; height: 48px; background: #eeefff; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #4f46e5; font-size: 1.4rem;">
-                        <i class="fas fa-calendar-alt"></i>
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content rc-modal-content">
+
+            {{-- Header --}}
+            <div class="rc-modal-header">
+                <div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:44px;height:44px;background:#ededff;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#4f46e5;font-size:1.2rem;">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div>
+                            <h5 style="font-weight:850;color:#0f172a;font-size:1.3rem;margin:0;">Generate Report</h5>
+                            <div id="rc_format_badge" class="rc-format-badge badge-excel" style="margin-top:4px;">
+                                <i class="fas fa-file-excel"></i> Excel (.xlsx)
+                            </div>
+                        </div>
                     </div>
-                    <h5 class="modal-title" style="font-family: 'Outfit', sans-serif; font-weight: 850; color: #0f172a; font-size: 1.6rem;">
-                        Select Date Span
-                    </h5>
                 </div>
-                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close" style="background-color: #f1f5f9; border-radius: 50%; padding: 10px; opacity: 1;"></button>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"
+                    style="background-color:#f1f5f9;border-radius:50%;padding:10px;opacity:1;"></button>
             </div>
-            <div class="modal-body" style="padding: 20px 35px 0;">
-                <form id="signatoryForm">
-                    <input type="hidden" id="report_type">
-                    <input type="hidden" id="report_status">
-                    <input type="hidden" id="report_format">
 
-                    <!-- Date Span Selection (Calendar Popup Style) -->
-                    <div id="timeline_section" class="mb-4">
-                        <div style="background: #f8fafc; padding: 12px 20px; border-radius: 16px; border: 1.5px solid #edf2f7; margin-bottom: 20px;" id="div_employee_context">
-                            <i class="fas fa-filter text-primary me-2"></i>
-                            <span style="font-size: 0.85rem; font-weight: 700; color: #475569;">Report Filter: <span id="label_report_context" style="color: #6366f1;">ALL EMPLOYEES</span></span>
-                        </div>
+            {{-- Body --}}
+            <div class="rc-modal-body">
+                <input type="hidden" id="report_type">
+                <input type="hidden" id="report_status">
+                <input type="hidden" id="report_format">
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label text-uppercase mb-2" style="font-size: 0.68rem; font-weight: 850; color: #475569; letter-spacing: 0.8px;">Start Date</label>
-                                <div class="position-relative">
-                                    <input type="date" id="input_start_date" class="form-control" value="{{ date('Y-m-01') }}" style="border-radius: 16px; padding: 12px 18px; font-weight: 600; border: 2px solid #e2e8f0; color: #1e1b4b; background: white;">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-uppercase mb-2" style="font-size: 0.68rem; font-weight: 850; color: #475569; letter-spacing: 0.8px;">End Date</label>
-                                <div class="position-relative">
-                                    <input type="date" id="input_end_date" class="form-control" value="{{ date('Y-m-t') }}" style="border-radius: 16px; padding: 12px 18px; font-weight: 600; border: 2px solid #e2e8f0; color: #1e1b4b; background: white;">
-                                </div>
-                            </div>
+                {{-- Context tag --}}
+                <div style="background:#f8fafc;padding:10px 18px;border-radius:13px;border:1.5px solid #edf2f7;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+                    <i class="fas fa-filter" style="color:#6366f1;"></i>
+                    <span style="font-size:0.82rem;font-weight:700;color:#475569;">
+                        Report Scope: <span id="label_report_context" style="color:#6366f1;">ALL EMPLOYEES</span>
+                    </span>
+                </div>
+
+                {{-- Date Range --}}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="sig-lbl">Start Date</label>
+                        <input type="date" id="input_start_date" value="{{ date('Y-m-01') }}"
+                            style="width:100%;padding:11px 16px;border-radius:13px;border:2px solid #e2e8f0;font-weight:600;font-size:0.88rem;color:#0f172a;outline:none;background:white;" class="sig-input">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="sig-lbl">End Date</label>
+                        <input type="date" id="input_end_date" value="{{ date('Y-m-t') }}"
+                            style="width:100%;padding:11px 16px;border-radius:13px;border:2px solid #e2e8f0;font-weight:600;font-size:0.88rem;color:#0f172a;outline:none;background:white;" class="sig-input">
+                    </div>
+                </div>
+
+                {{-- Signatories --}}
+                <div style="font-size:0.65rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">Signatories</div>
+                <div class="row g-3 mb-1">
+                    {{-- Prepared By --}}
+                    <div class="col-lg-4">
+                        <div class="sig-box sig-box-prep">
+                            <h6>Prepared By</h6>
+                            <label class="sig-lbl">Full Name</label>
+                            <input class="sig-input uppercase" id="prep_name" placeholder="CHRISTINE JOY C. MAAPOY">
+                            <label class="sig-lbl">Position Line 1</label>
+                            <input class="sig-input" id="prep_pos" placeholder="Administrative Assistant III">
+                            <label class="sig-lbl">Position Line 2</label>
+                            <input class="sig-input" id="prep_pos2" placeholder="E-Form7 In-Charge">
+                            <label class="sig-lbl">Position Line 3</label>
+                            <input class="sig-input" id="prep_pos3" placeholder="...">
                         </div>
                     </div>
-
-                    <div class="row g-3 align-items-stretch">
-                        <!-- Prepared By -->
-                        <div class="col-lg-4">
-                            <div style="background: #f8fafc; padding: 18px; border-radius: 18px; border: 1px solid #f1f5f9; height: 100%;">
-                                <h6 style="font-weight: 800; color: #475569; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px;">Prepared By</h6>
-                                <div class="mb-2">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Full Name</label>
-                                    <input type="text" id="prep_name" class="form-control form-control-sm" placeholder="CHRISTINE JOY C. MAAPOY" style="border-radius: 10px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Position Line 1</label>
-                                    <input type="text" id="prep_pos" class="form-control form-control-sm" placeholder="Administrative Assistant III" style="border-radius: 10px; font-weight: 500; font-size: 0.8rem;">
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Position Line 2</label>
-                                    <input type="text" id="prep_pos2" class="form-control form-control-sm" placeholder="E-Form7 In-Charge" style="border-radius: 10px; font-weight: 500; font-size: 0.8rem;">
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Position Line 3</label>
-                                    <input type="text" id="prep_pos3" class="form-control form-control-sm" placeholder="..." style="border-radius: 10px; font-weight: 500; font-size: 0.8rem;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Certified Correct By -->
-                        <div class="col-lg-4">
-                            <div style="background: #f0fdf4; padding: 18px; border-radius: 18px; border: 1.5px solid #dcfce7; height: 100%;">
-                                <h6 style="font-weight: 800; color: #166534; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px;">Certified Correct By</h6>
-                                <div class="mb-2">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Full Name</label>
-                                    <input type="text" id="cert_name" class="form-control form-control-sm" placeholder="MICHELLE A. MAL-IN" style="border-radius: 10px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Position</label>
-                                    <input type="text" id="cert_pos" class="form-control form-control-sm" placeholder="HRMO II" style="border-radius: 10px; font-weight: 500; font-size: 0.8rem;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Verified Correct By -->
-                        <div class="col-lg-4">
-                            <div style="background: #eff6ff; padding: 18px; border-radius: 18px; border: 1.5px solid #dbeafe; height: 100%;">
-                                <h6 style="font-weight: 800; color: #1e40af; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px;">Verified Correct By</h6>
-                                <div class="mb-2">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Full Name</label>
-                                    <input type="text" id="ver_name" class="form-control form-control-sm" placeholder="ROSELYN B. SENCIL" style="border-radius: 10px; font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label text-muted" style="font-size: 0.65rem; font-weight: 700; margin-bottom: 2px;">Position</label>
-                                    <input type="text" id="ver_pos" class="form-control form-control-sm" placeholder="HRMO V" style="border-radius: 10px; font-weight: 500; font-size: 0.8rem;">
-                                </div>
-                            </div>
+                    {{-- Certified Correct By --}}
+                    <div class="col-lg-4">
+                        <div class="sig-box sig-box-cert">
+                            <h6>Certified Correct By</h6>
+                            <label class="sig-lbl">Full Name</label>
+                            <input class="sig-input uppercase" id="cert_name" placeholder="MICHELLE A. MAL-IN">
+                            <label class="sig-lbl">Position</label>
+                            <input class="sig-input" id="cert_pos" placeholder="HRMO II">
                         </div>
                     </div>
-                </form>
+                    {{-- Verified Correct By --}}
+                    <div class="col-lg-4">
+                        <div class="sig-box sig-box-ver">
+                            <h6>Verified Correct By</h6>
+                            <label class="sig-lbl">Full Name</label>
+                            <input class="sig-input uppercase" id="ver_name" placeholder="ROSELYN B. SENCIL">
+                            <label class="sig-lbl">Position</label>
+                            <input class="sig-input" id="ver_pos" placeholder="HRMO V">
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer border-0" style="padding: 15px 40px 25px; background: white;">
-                <button type="button" class="btn px-4 py-2" data-bs-dismiss="modal" style="border-radius: 14px; font-weight: 750; color: #64748b; background: #f1f5f9; border: none; font-size: 0.9rem;">Cancel</button>
-                <button type="button" onclick="executeReportGeneration()" class="btn btn-primary px-5 py-2 shadow-lg" style="border-radius: 14px; font-weight: 750; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-eye"></i> Preview Report
+
+            {{-- Footer --}}
+            <div class="rc-modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" class="btn px-4 py-2" data-bs-dismiss="modal"
+                    style="border-radius:12px;font-weight:700;color:#64748b;background:#f1f5f9;border:none;font-size:0.85rem;">
+                    Cancel
+                </button>
+                <button id="rc_gen_btn" type="button" onclick="executeReportGeneration()"
+                    class="rc-gen-btn rc-gen-btn-excel">
+                    <i class="fas fa-file-excel"></i> Generate Excel
                 </button>
             </div>
+
         </div>
     </div>
 </div>
 
-<!-- Preview Modal -->
+{{-- ══ PREVIEW MODAL ══ --}}
 <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 90%; width: 1100px;">
-        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-            <div class="modal-header bg-light" style="border-bottom: 1px solid #f1f5f9;">
-                <h5 class="modal-title" style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #1e293b;"><i class="fas fa-eye text-info"></i> Document Preview</h5>
+    <div class="modal-dialog modal-dialog-centered" style="max-width:90%;width:1100px;">
+        <div class="modal-content" style="border-radius:20px;overflow:hidden;border:none;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div class="modal-header bg-light" style="border-bottom:1px solid #f1f5f9;">
+                <h5 class="modal-title" style="font-weight:700;color:#1e293b;">
+                    <i class="fas fa-eye" style="color:#0ea5e9;margin-right:8px;"></i> Document Preview
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0 position-relative" style="height: 75vh; background: #e2e8f0;">
-                <div id="previewSpinner" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(255,255,255,0.8); z-index: 10;">
-                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <div class="modal-body p-0 position-relative" style="height:75vh;background:#e2e8f0;">
+                <div id="previewSpinner" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center"
+                    style="background:rgba(255,255,255,0.85);z-index:10;">
+                    <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
-                <iframe id="previewFrame" style="width: 100%; height: 100%; border: none;" onload="document.getElementById('previewSpinner').style.display='none';"></iframe>
+                <iframe id="previewFrame" style="width:100%;height:100%;border:none;"
+                    onload="document.getElementById('previewSpinner').style.display='none';"></iframe>
             </div>
         </div>
     </div>
@@ -443,67 +695,77 @@
 <script>
     let configModal;
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         configModal = new bootstrap.Modal(document.getElementById('reportConfigModal'));
     });
 
+    const formatMeta = {
+        excel:   { badge: 'badge-excel', badgeHtml: '<i class="fas fa-file-excel"></i> Excel (.xlsx)',   btnClass: 'rc-gen-btn-excel',   btnHtml: '<i class="fas fa-file-excel"></i> Generate Excel' },
+        pdf:     { badge: 'badge-pdf',   badgeHtml: '<i class="fas fa-file-pdf"></i> PDF Document',     btnClass: 'rc-gen-btn-pdf',     btnHtml: '<i class="fas fa-file-pdf"></i> Generate PDF' },
+        preview: { badge: 'badge-preview',badgeHtml: '<i class="fas fa-eye"></i> Browser Preview',      btnClass: 'rc-gen-btn-preview', btnHtml: '<i class="fas fa-eye"></i> Open Preview' },
+    };
+
+    const contextMap = {
+        all:       'ALL EMPLOYEES',
+        present:   'PRESENT EMPLOYEES ONLY',
+        absent:    'ABSENCE RECORDS ONLY',
+        late:      'LATE RECORDS ONLY',
+        undertime: 'UNDERTIME LOGS ONLY',
+    };
+
     function openReportConfig(type, status, format) {
-        document.getElementById('report_type').value = type;
+        document.getElementById('report_type').value   = type;
         document.getElementById('report_status').value = status;
         document.getElementById('report_format').value = format;
 
-        // Update context label
-        const contextMap = { 'all': 'ALL EMPLOYEES', 'present': 'PRESENT EMPLOYEES ONLY', 'absent': 'ABSENCE RECORDS ONLY', 'late': 'LATE RECORDS ONLY', 'undertime': 'UNDERTIME LOGS ONLY' };
-        document.getElementById('label_report_context').innerText = contextMap[status.toLowerCase()] || 'ALL EMPLOYEES';
+        // Context label
+        document.getElementById('label_report_context').innerText =
+            contextMap[status.toLowerCase()] || 'ALL EMPLOYEES';
+
+        // Badge
+        const meta = formatMeta[format] || formatMeta.excel;
+        const badge = document.getElementById('rc_format_badge');
+        badge.className = 'rc-format-badge ' + meta.badge;
+        badge.innerHTML = meta.badgeHtml;
+
+        // Generate button
+        const btn = document.getElementById('rc_gen_btn');
+        btn.className = 'rc-gen-btn ' + meta.btnClass;
+        btn.innerHTML = meta.btnHtml;
 
         configModal.show();
     }
 
-
     function executeReportGeneration() {
-        const type = document.getElementById('report_type').value;
+        const type   = document.getElementById('report_type').value;
         const status = document.getElementById('report_status').value;
         const format = document.getElementById('report_format').value;
 
-        // Collect signatories
         const signatories = {
-            prep_name: document.getElementById('prep_name').value || document.getElementById('prep_name').placeholder,
-            prep_pos: document.getElementById('prep_pos').value || document.getElementById('prep_pos').placeholder,
-            prep_pos2: document.getElementById('prep_pos2').value || document.getElementById('prep_pos2').placeholder,
-            prep_pos3: document.getElementById('prep_pos3').value || document.getElementById('prep_pos3').placeholder,
-            cert_name: document.getElementById('cert_name').value || document.getElementById('cert_name').placeholder,
-            cert_pos: document.getElementById('cert_pos').value || document.getElementById('cert_pos').placeholder,
-            ver_name: document.getElementById('ver_name').value || document.getElementById('ver_name').placeholder,
-            ver_pos: document.getElementById('ver_pos').value || document.getElementById('ver_pos').placeholder,
+            prep_name:  document.getElementById('prep_name').value  || document.getElementById('prep_name').placeholder,
+            prep_pos:   document.getElementById('prep_pos').value   || document.getElementById('prep_pos').placeholder,
+            prep_pos2:  document.getElementById('prep_pos2').value  || document.getElementById('prep_pos2').placeholder,
+            prep_pos3:  document.getElementById('prep_pos3').value  || document.getElementById('prep_pos3').placeholder,
+            cert_name:  document.getElementById('cert_name').value  || document.getElementById('cert_name').placeholder,
+            cert_pos:   document.getElementById('cert_pos').value   || document.getElementById('cert_pos').placeholder,
+            ver_name:   document.getElementById('ver_name').value   || document.getElementById('ver_name').placeholder,
+            ver_pos:    document.getElementById('ver_pos').value    || document.getElementById('ver_pos').placeholder,
         };
 
-        // Determine route
         let baseUrl = '';
         if (type === 'monthly') baseUrl = "{{ route('admin.export.attendance') }}";
-        else if (type === 'weekly') baseUrl = "{{ route('admin.export.weekly') }}";
-        else if (type === 'yearly') baseUrl = "{{ route('admin.export.yearly') }}";
+        else if (type === 'weekly')  baseUrl = "{{ route('admin.export.weekly') }}";
+        else if (type === 'yearly')  baseUrl = "{{ route('admin.export.yearly') }}";
 
-        // Collect timeline data
         const startVal = document.getElementById('input_start_date').value;
-        const [y, m, d] = startVal.split('-');
-        
-        const timeline = {};
-        if (type === 'monthly') {
-            timeline.month = m;
-            timeline.year = y;
-        } else if (type === 'yearly') {
-            timeline.year = y;
-        } else if (type === 'weekly') {
-            timeline.date = startVal;
-        }
+        const [y, m]   = startVal.split('-');
 
-        // Build URL
-        const params = new URLSearchParams({
-            status: status,
-            format: format,
-            ...timeline,
-            ...signatories
-        });
+        const timeline = {};
+        if      (type === 'monthly') { timeline.month = m; timeline.year = y; }
+        else if (type === 'yearly')  { timeline.year = y; }
+        else if (type === 'weekly')  { timeline.date = startVal; }
+
+        const params   = new URLSearchParams({ status, format, ...timeline, ...signatories });
         const finalUrl = baseUrl + '?' + params.toString();
 
         configModal.hide();
@@ -517,16 +779,10 @@
 
     function openPreview(url) {
         document.getElementById('previewSpinner').style.display = 'flex';
-        var frame = document.getElementById('previewFrame');
-        
-        // Reset the iframe src to force a proper reload cycle
+        const frame = document.getElementById('previewFrame');
         frame.src = 'about:blank';
-        setTimeout(() => {
-            frame.src = url;
-        }, 10);
-        
-        var myModal = new bootstrap.Modal(document.getElementById('previewModal'));
-        myModal.show();
+        setTimeout(() => { frame.src = url; }, 10);
+        new bootstrap.Modal(document.getElementById('previewModal')).show();
     }
 </script>
 @endsection

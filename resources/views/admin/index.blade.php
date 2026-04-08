@@ -1053,7 +1053,7 @@
                 <div class="search-action-bar">
                     <div class="pill-container" style="flex: 1;">
                         {{-- Station Filter --}}
-                        <select onchange="window.location.href='?station='+this.value"
+                        <select id="stationFilter" onchange="updateFilters()"
                             style="border: none; background: #f8fafc; padding: 0 16px; font-size: 0.78rem; font-weight: 800; color: #475569; outline: none; border-right: 1.5px solid #e2e8f0; height: 100%;">
                             <option value="">All Stations</option>
                             @foreach($stations as $s)
@@ -1066,6 +1066,8 @@
                         <div style="flex: 1; display: flex; align-items: center; padding: 0 14px;">
                             <i class="fas fa-search" style="color: #94a3b8; font-size: 0.82rem; margin-right: 10px;"></i>
                             <input type="text" id="searchInput" placeholder="Search name or ID..."
+                                value="{{ $search }}"
+                                onkeyup="if(event.key === 'Enter') updateFilters()"
                                 style="border: none; outline: none; background: transparent; font-size: 0.85rem; font-weight: 500; width: 100%; color: #1e293b;" autocomplete="off">
                             <div id="searchSuggestions" class="em-suggestions" style="top: 40px; left: 0;"></div>
                         </div>
@@ -1081,11 +1083,12 @@
                         style="background: linear-gradient(135deg, #10b981, #059669); height: 42px; padding: 0 18px; font-size: 0.8rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.2);">
                         <i class="fas fa-save"></i> Save All
                     </button>
-
-                    <button class="em-btn-add" onclick="confirmClearAllEmployees()" id="clearAllBtn"
+                    
+                    <button class="em-btn-add" onclick="clearAllEmployees()"
                         style="background: linear-gradient(135deg, #ef4444, #dc2626); height: 42px; padding: 0 18px; font-size: 0.8rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
-                        <i class="fas fa-trash-alt"></i> Clear All
+                        <i class="fas fa-trash"></i> Clear All
                     </button>
+
                 </div>
             </div>
         </div>
@@ -1137,7 +1140,7 @@
                                 $daysWithPay = $reasons['with_pay'];
                                 $wop = $reasons['without_pay'];
                                 $absCount = $daysWithPay + $wop;
-                                $presCount = ($att['present'] ?? 0) + $lateCount;
+                                $presCount = max(0, $workingDays - $absCount);
 
                                 $tardyLog = array_merge($empLateLogs, $empUtLogs);
                                 usort($tardyLog, function($a, $b) { return $a['day'] <=> $b['day']; });
@@ -1183,7 +1186,7 @@
                                     <div style="display:flex; align-items:center; gap:5px; margin-top:2px; flex-wrap:wrap;">
                                         <div class="emp-profile-id">ID: {{ $emp->emp_number ?? 'N/A' }}</div>
                                         @if($emp->station)
-                                            <span class="emp-station-badge">{{ $emp->station }}</span>
+                                            <span class="emp-station-badge" onclick="let u = new URL(window.location.href); u.searchParams.set('station', '{{ $emp->station }}'); window.location.href = u.toString();">{{ $emp->station }}</span>
                                         @endif
                                         <button type="button" class="copy-all-btn" title="Copy all attendance dates"
                                             data-copy-all='{{ $copyAllData }}'
@@ -1391,7 +1394,7 @@
                 <h2 style="margin:0;"><i class="fas fa-user-plus" style="color:#3b82f6;margin-right:8px;"></i>Add New Employee</h2>
                 <button onclick="closeModal('addEmpModal')" style="border:none; background:#f1f5f9; width:34px; height:34px; border-radius:10px; cursor:pointer; color:#64748b;"><i class="fas fa-times"></i></button>
             </div>
-            <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:16px;">Manually fill in details or upload an Excel file.</p>
+            <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:16px;">Manually fill in details, upload an Excel file, or load from the Attendance Report.</p>
 
             {{-- Tabs --}}
             <div style="display:flex;gap:8px;margin-bottom:18px;border-bottom:2px solid #f1f5f9;padding-bottom:0;">
@@ -1402,6 +1405,10 @@
                 <button type="button" id="tabExcelBtn" onclick="switchAddTab('excel')"
                     style="padding:8px 18px;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:700;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;">
                     <i class="fas fa-file-excel"></i> Upload Excel
+                </button>
+                <button type="button" id="tabAttendanceBtn" onclick="switchAddTab('attendance')"
+                    style="padding:8px 18px;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:700;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;">
+                    <i class="fas fa-file-import" style="color:#f59e0b;"></i> Attendance Report
                 </button>
             </div>
 
@@ -1489,6 +1496,87 @@
                         onclick="submitExcelImport()" style="opacity:0.5;pointer-events:none;">
                         <i class="fas fa-upload"></i> Import Employees
                     </button>
+                </div>
+            </div>
+
+            {{-- From Attendance Report Tab --}}
+            <div id="tabAttendance" style="display:none;">
+
+                {{-- Info Banner --}}
+                <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:flex-start;gap:14px;">
+                    <i class="fas fa-file-spreadsheet" style="color:#d97706;font-size:1.5rem;flex-shrink:0;margin-top:2px;"></i>
+                    <div>
+                        <div style="font-weight:800;color:#92400e;font-size:0.9rem;margin-bottom:4px;">
+                            Report On Attendance, Absences and Tardiness 2025 &ndash; 2026
+                        </div>
+                        <div style="font-size:0.78rem;color:#b45309;font-weight:600;line-height:1.6;">
+                            Click <strong>Load from Report</strong> to read all employees from the server-side Excel file.
+                            Employees whose Employee No. already exists will be flagged &mdash; only <em>new</em> employees will be imported.
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Spinner --}}
+                <div id="attLoadStatus" style="display:none;text-align:center;padding:24px 0;color:#94a3b8;font-size:0.85rem;font-weight:600;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>
+                    Reading attendance Excel file from server&hellip;
+                </div>
+
+                {{-- Summary Bar --}}
+                <div id="attSummaryBar" style="display:none;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:12px;font-size:0.8rem;font-weight:700;color:#475569;">
+                    <span><i class="fas fa-users" style="color:#3b82f6;"></i> Total: <strong id="attTotal">0</strong></span>
+                    <span><i class="fas fa-user-plus" style="color:#16a34a;"></i> New: <strong id="attNew" style="color:#16a34a;">0</strong></span>
+                    <span><i class="fas fa-ban" style="color:#dc2626;"></i> Already Exists: <strong id="attDupes" style="color:#dc2626;">0</strong></span>
+                    <label style="margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:#64748b;">
+                        <input type="checkbox" id="attHideDupes" onchange="filterAttendancePreview()"> Hide existing
+                    </label>
+                </div>
+
+                {{-- Preview Table --}}
+                <div id="attPreviewWrap" style="display:none;max-height:320px;overflow-y:auto;overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.75rem;white-space:nowrap;">
+                        <thead>
+                            <tr style="background:#f8fafc;position:sticky;top:0;z-index:2;">
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">#</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">Name</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">Emp No.</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">Station</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">Sched</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">Remarks</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:center;border-bottom:1.5px solid #e2e8f0;">W/O Pay</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#b45309;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#fffbeb;">Tardy</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#b45309;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#fffbeb;">Mins</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#b45309;text-align:left;border-bottom:1.5px solid #e2e8f0;background:#fffbeb;">Dates</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#1d4ed8;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#eff6ff;">Undertime</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#1d4ed8;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#eff6ff;">Mins</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#1d4ed8;text-align:left;border-bottom:1.5px solid #e2e8f0;background:#eff6ff;">Dates</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#0f766e;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#f0fdfa;">Total Mins</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#0f766e;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#f0fdfa;">Converted</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#0f766e;text-align:center;border-bottom:1.5px solid #e2e8f0;background:#f0fdfa;">Total Tardy</th>
+                                <th style="padding:8px 10px;font-weight:800;color:#64748b;text-align:left;border-bottom:1.5px solid #e2e8f0;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attPreviewBody"></tbody>
+                    </table>
+                </div>
+
+                {{-- Error Message --}}
+                <div id="attLoadError" style="display:none;padding:14px 18px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#b91c1c;font-size:0.82rem;font-weight:600;"></div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px;flex-wrap:wrap;">
+                    <button type="button" id="loadAttBtn" class="modal-btn"
+                        onclick="loadAttendanceReport()"
+                        style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;box-shadow:0 3px 12px rgba(245,158,11,0.3);">
+                        <i class="fas fa-sync-alt"></i> Load from Report
+                    </button>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="modal-btn modal-btn-cancel" onclick="closeModal('addEmpModal')">Cancel</button>
+                        <button type="button" id="importAttBtn" class="modal-btn modal-btn-green"
+                            onclick="importFromAttendanceReport()"
+                            style="opacity:0.5;pointer-events:none;">
+                            <i class="fas fa-file-import"></i> Sync All Attendance
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2618,20 +2706,36 @@
         /* ── URL Navigation ───────────────────────────────────────────        */
         function goToMonth(val) {
             const [y, m] = val.split('-');
-            window.location.href = "{!! url('admin/index') !!}?mode={{ $mode }}&year=" + y + "&month=" + parseInt(m);
+            const u = new URL(window.location.href);
+            u.searchParams.set('year', y);
+            u.searchParams.set('month', parseInt(m));
+            window.location.href = u.toString();
         }
 
         function goToMode(mode) {
-            window.location.href = "{!! url('admin/index') !!}?mode=" + mode + "&year={{ $year }}&month={{ $month }}";
+            const u = new URL(window.location.href);
+            u.searchParams.set('mode', mode);
+            window.location.href = u.toString();
         }
 
         /* ── Search & Filter ────────────────────────────────────────── */
+        function updateFilters() {
+            const st = document.getElementById('stationFilter').value;
+            const q = document.getElementById('searchInput').value;
+            const u = new URL(window.location.href);
+            if(st) u.searchParams.set('station', st); else u.searchParams.delete('station');
+            if(q) u.searchParams.set('search', q); else u.searchParams.delete('search');
+            window.location.href = u.toString();
+        }
+
         const searchInput = document.getElementById('searchInput');
         const suggestionsBox = document.getElementById('searchSuggestions');
         const rows = document.querySelectorAll('.emp-row');
 
         if (searchInput) {
             searchInput.addEventListener('input', filterRows);
+            // Auto-filter on load if there's a value
+            if (searchInput.value) filterRows();
         }
 
         function selectSuggestion(name, id = '') {
@@ -2643,11 +2747,12 @@
                     const isMatch = row.dataset.search.includes(id.toLowerCase());
                     row.style.display = isMatch ? '' : 'none';
                 });
-                checkEmptyState();
+                if (typeof checkEmptyState === 'function') checkEmptyState();
             } else {
-                filterRows();
+                updateFilters(); 
             }
         }
+
 
         window.addEventListener('click', function (e) {
             if (suggestionsBox && !e.target.closest('.pill-container')) {
@@ -2665,16 +2770,21 @@
             let suggestionsHtml = '';
             let suggestionsCount = 0;
 
+            let stationMatches = new Set();
             rows.forEach(row => {
                 const searchData = row.dataset.search || '';
-                // Multiple word matching (all words must be present)
                 const isVisible = words.every(w => searchData.includes(w));
                 
                 row.style.display = isVisible ? '' : 'none';
                 if (isVisible) {
                     visibleCount++;
                     
-                    // Suggest only if user typed something and we need more suggestions
+                    const stationBadge = row.querySelector('.emp-station-badge');
+                    if (stationBadge && q.length > 0) {
+                        const stName = stationBadge.innerText.trim();
+                        if (stName.toLowerCase().includes(q)) stationMatches.add(stName);
+                    }
+
                     if (q.length > 1 && suggestionsCount < 5) {
                         const nameEl = row.querySelector('.emp-profile-name');
                         const idEl = row.querySelector('.emp-profile-id');
@@ -2689,6 +2799,15 @@
                     }
                 }
             });
+
+            // Prepend station matches if any
+            let stationHtml = '';
+            stationMatches.forEach(st => {
+                stationHtml += `<div class="suggestion-item" style="background:#f0f9ff; border-bottom:1px solid #e0f2fe; color:#0369a1; font-weight:700;" onclick="let u=new URL(window.location.href); u.searchParams.set('station', '${st}'); window.location.href=u.toString();">
+                    <i class="fas fa-building" style="margin-right:8px; opacity:0.8;"></i>Station: ${st}
+                </div>`;
+            });
+            suggestionsHtml = stationHtml + suggestionsHtml;
 
             if (suggestionsHtml) {
                 suggestionsBox.innerHTML = suggestionsHtml;
@@ -3596,16 +3715,216 @@
 
         function switchAddTab(tab) {
             const isManual = tab === 'manual';
-            document.getElementById('tabManual').style.display = isManual ? 'block' : 'none';
-            document.getElementById('tabExcel').style.display = isManual ? 'none' : 'block';
+            const isExcel  = tab === 'excel';
+            const isAtt    = tab === 'attendance';
+
+            document.getElementById('tabManual').style.display     = isManual ? 'block' : 'none';
+            document.getElementById('tabExcel').style.display      = isExcel  ? 'block' : 'none';
+            document.getElementById('tabAttendance').style.display = isAtt    ? 'block' : 'none';
 
             const manualBtn = document.getElementById('tabManualBtn');
-            const excelBtn = document.getElementById('tabExcelBtn');
-            manualBtn.style.color = isManual ? '#3b82f6' : '#94a3b8';
-            manualBtn.style.borderBottom = isManual ? '2px solid #3b82f6' : '2px solid transparent';
-            excelBtn.style.color = isManual ? '#94a3b8' : '#3b82f6';
-            excelBtn.style.borderBottom = isManual ? '2px solid transparent' : '2px solid #3b82f6';
+            const excelBtn  = document.getElementById('tabExcelBtn');
+            const attBtn    = document.getElementById('tabAttendanceBtn');
+
+            manualBtn.style.color       = isManual ? '#3b82f6' : '#94a3b8';
+            manualBtn.style.borderBottom= isManual ? '2px solid #3b82f6' : '2px solid transparent';
+            excelBtn.style.color        = isExcel  ? '#3b82f6' : '#94a3b8';
+            excelBtn.style.borderBottom = isExcel  ? '2px solid #3b82f6' : '2px solid transparent';
+            attBtn.style.color          = isAtt    ? '#d97706' : '#94a3b8';
+            attBtn.style.borderBottom   = isAtt    ? '2px solid #d97706' : '2px solid transparent';
         }
+
+        /* ── Attendance Report Import ─────────────────────────────── */
+        let _attData = [];      // all rows from server
+        let _attFiltered = [];  // rows currently shown (after hide-dupes filter)
+
+        async function loadAttendanceReport() {
+            const btn       = document.getElementById('loadAttBtn');
+            const spinner   = document.getElementById('attLoadStatus');
+            const summaryBar= document.getElementById('attSummaryBar');
+            const previewWrap = document.getElementById('attPreviewWrap');
+            const errDiv    = document.getElementById('attLoadError');
+            const importBtn = document.getElementById('importAttBtn');
+
+            // Reset UI
+            spinner.style.display   = 'block';
+            summaryBar.style.display= 'none';
+            previewWrap.style.display='none';
+            errDiv.style.display    = 'none';
+            importBtn.style.opacity = '0.5';
+            importBtn.style.pointerEvents = 'none';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+
+            try {
+                const res = await fetch('{{ route("admin.employee.loadAttendanceExcel") }}', {
+                    headers: { 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' }
+                });
+                const result = await res.json();
+
+                if (!result.success) {
+                    errDiv.textContent = result.message || 'Failed to load file.';
+                    errDiv.style.display = 'block';
+                } else {
+                    _attData = result.employees;
+                    renderAttendancePreview();
+
+                    // Enable import button only if there are new employees
+                    const newCount = _attData.filter(r => !r.duplicate).length;
+                    if (newCount > 0) {
+                        importBtn.style.opacity = '1';
+                        importBtn.style.pointerEvents = 'auto';
+                    }
+                }
+            } catch(e) {
+                errDiv.textContent = 'Network error: ' + e.message;
+                errDiv.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Reload';
+            }
+        }
+
+        function renderAttendancePreview() {
+            const hideDupes = document.getElementById('attHideDupes').checked;
+            _attFiltered = hideDupes ? _attData.filter(r => !r.duplicate) : _attData;
+
+            const total  = _attData.length;
+            const dupes  = _attData.filter(r => r.duplicate).length;
+            const newCnt = total - dupes;
+
+            document.getElementById('attTotal').textContent = total;
+            document.getElementById('attNew').textContent   = newCnt;
+            document.getElementById('attDupes').textContent = dupes;
+
+            const tbody = document.getElementById('attPreviewBody');
+            tbody.innerHTML = '';
+            _attFiltered.forEach((emp, i) => {
+                const isDupe = emp.duplicate;
+                const tr = document.createElement('tr');
+                tr.style.background = isDupe ? '#fefce8' : '';
+                tr.style.opacity    = isDupe ? '0.65' : '1';
+                tr.innerHTML = `
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#94a3b8;font-size:0.72rem;font-weight:600;">${i + 1}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-weight:700;color:#1e293b;">
+                        ${escHtml(emp.last_name)}, ${escHtml(emp.first_name)} ${escHtml(emp.middle_name)}
+                        ${isDupe ? '<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fef3c7;color:#b45309;border-radius:4px;font-size:0.65rem;font-weight:800;">EXISTS</span>' : ''}
+                    </td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-family:monospace;font-size:0.75rem;color:#475569;">${escHtml(emp.emp_number)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;">${escHtml(emp.station)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;">${escHtml(emp.official_time)}</td>
+                    
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;max-width:150px;overflow:hidden;text-overflow:ellipsis;">${escHtml(emp.remarks)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;text-align:center;">${escHtml(emp.wo_pay)}</td>
+                    
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#b45309;text-align:center;background:#fffbeb;">${escHtml(emp.tardy)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#b45309;text-align:center;background:#fffbeb;">${escHtml(emp.tardy_mins)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#b45309;max-width:150px;overflow:hidden;text-overflow:ellipsis;background:#fffbeb;">${escHtml(emp.tardy_dates)}</td>
+                    
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#1d4ed8;text-align:center;background:#eff6ff;">${escHtml(emp.undertime)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#1d4ed8;text-align:center;background:#eff6ff;">${escHtml(emp.ut_mins)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#1d4ed8;max-width:150px;overflow:hidden;text-overflow:ellipsis;background:#eff6ff;">${escHtml(emp.ut_dates)}</td>
+                    
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#0f766e;text-align:center;background:#f0fdfa;">${escHtml(emp.total_mins)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#0f766e;text-align:center;background:#f0fdfa;">${escHtml(emp.total_conv)}</td>
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#0f766e;text-align:center;background:#f0fdfa;">${escHtml(emp.total_tardy)}</td>
+                    
+                    <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;">
+                        <span style="padding:2px 7px;border-radius:5px;font-size:0.68rem;font-weight:800;
+                            background:${emp.status==='ACTIVE'?'#f0fdf4':'#f8fafc'};
+                            color:${emp.status==='ACTIVE'?'#16a34a':'#64748b'};">
+                            ${escHtml(emp.status)}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('attSummaryBar').style.display = 'flex';
+            document.getElementById('attPreviewWrap').style.display = _attFiltered.length ? 'block' : 'none';
+        }
+
+        function filterAttendancePreview() {
+            if (_attData.length) renderAttendancePreview();
+        }
+
+        async function importFromAttendanceReport() {
+            const newEmployees = _attData.filter(r => !r.duplicate);
+            if (!newEmployees.length) {
+                alert('No new employees to import. All records already exist in the system.');
+                return;
+            }
+
+            const btn = document.getElementById('importAttBtn');
+            const oldHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
+
+            closeModal('addEmpModal');
+            showImportModal('loading');
+
+            const rows = newEmployees.map(emp => ({
+                last_name:     emp.last_name,
+                first_name:    emp.first_name,
+                middle_name:   emp.middle_name,
+                emp_number:    emp.emp_number,
+                station:       emp.station,
+                official_time: emp.official_time,
+                wo_pay:        emp.wo_pay,
+                tardy:         emp.total_tardy || emp.tardy,
+                tardy_minutes: emp.total_mins || emp.tardy_mins,
+                tardiness_dates: emp.tardy_dates,
+                ut_minutes:    emp.ut_mins,
+                ut_dates:      emp.ut_dates,
+                remarks:       emp.remarks
+            }));
+
+            const fd = new FormData();
+            fd.append('rows', JSON.stringify(rows));
+
+            try {
+                const res = await fetch('{{ route("admin.employee.import") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+                    body: fd
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    document.getElementById('importSuccessMsg').textContent =
+                        `${result.inserted} employee${result.inserted !== 1 ? 's' : ''} imported from Attendance Report` +
+                        (result.skipped ? `, ${result.skipped} skipped.` : '.');
+
+                    const errDiv2 = document.getElementById('importSuccessErrors');
+                    if (result.errors && result.errors.length) {
+                        errDiv2.style.display = 'block';
+                        errDiv2.innerHTML = '<strong>⚠ Skipped rows:</strong><br>' +
+                            result.errors.slice(0, 5).map(e => `• ${e}`).join('<br>');
+                    } else {
+                        errDiv2.style.display = 'none';
+                    }
+
+                    showImportModal('success');
+                    _attData = [];
+                    _attFiltered = [];
+                    setTimeout(() => window.location.reload(), 2500);
+                } else {
+                    document.getElementById('importFailedMsg').textContent =
+                        result.message || 'Import failed. Please try again.';
+                    showImportModal('failed');
+                    btn.innerHTML = oldHtml;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                document.getElementById('importFailedMsg').textContent =
+                    'Network error. Please try again.';
+                showImportModal('failed');
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        }
+
 
         function handleExcelFile(file) {
             if (!file) return;
@@ -3881,6 +4200,32 @@
                 showImportModal('failed');
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
+            }
+        }
+        
+        async function clearAllEmployees() {
+            if (!confirm("⚠️ WARNING: This will immediately delete ALL employee records from the database. This action cannot be undone!\n\nAre you absolutely sure you want to clear all records?")) {
+                return;
+            }
+            if (!confirm("FINAL WARNING: All employees and their attendance data will be permanently deleted. Continue?")) {
+                return;
+            }
+
+            try {
+                const res = await fetch("{{ route('admin.employee.clearAll') }}", {
+                    method: "POST",
+                    headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert("All employee records have been cleared successfully.");
+                    window.location.reload();
+                } else {
+                    alert("Failed to clear records: " + (data.message || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("A network error occurred while attempting to clear records.");
             }
         }
 

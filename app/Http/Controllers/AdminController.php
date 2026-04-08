@@ -137,8 +137,13 @@ class AdminController extends Controller
         // Late minutes totals & details
         $lateMins = [];
         $lateDetails = [];
-        $lateRows = $db->select("SELECT id, employee_id, day, minutes FROM late_minutes WHERE $dateFilterCondition ORDER BY day ASC", $dateFilterParams);
+        $lateRows = $db->select("SELECT id, employee_id, day, minutes, `year_month` FROM late_minutes WHERE $dateFilterCondition ORDER BY day ASC", $dateFilterParams);
         foreach ($lateRows as $r) {
+            // Check for weekend
+            $ts = strtotime($r->year_month . '-' . sprintf('%02d', $r->day));
+            $dow = (int) date('w', $ts);
+            if ($dow === 0 || $dow === 6) continue;
+
             $empId = $r->employee_id;
             if (!isset($lateMins[$empId])) {
                 $lateMins[$empId] = 0;
@@ -152,8 +157,13 @@ class AdminController extends Controller
         $undertimeMins = [];
         $utDetails = [];
         try {
-            $utRows = $db->select("SELECT id, employee_id, day, minutes FROM undertime_minutes WHERE $dateFilterCondition ORDER BY day ASC", $dateFilterParams);
+            $utRows = $db->select("SELECT id, employee_id, day, minutes, `year_month` FROM undertime_minutes WHERE $dateFilterCondition ORDER BY day ASC", $dateFilterParams);
             foreach ($utRows as $r) {
+                // Check for weekend
+                $ts = strtotime($r->year_month . '-' . sprintf('%02d', $r->day));
+                $dow = (int) date('w', $ts);
+                if ($dow === 0 || $dow === 6) continue;
+
                 $empId = $r->employee_id;
                 if (!isset($undertimeMins[$empId])) {
                     $undertimeMins[$empId] = 0;
@@ -168,7 +178,12 @@ class AdminController extends Controller
         // Absence reasons – with/without pay
         $absReasons = [];
         $absDetails = [];
-        foreach ($db->select("SELECT employee_id, day, reason FROM absence_reasons WHERE $dateFilterCondition", $dateFilterParams) as $r) {
+        foreach ($db->select("SELECT employee_id, day, reason, `year_month` FROM absence_reasons WHERE $dateFilterCondition", $dateFilterParams) as $r) {
+            // Determine if the day was a weekend
+            $ts = strtotime($r->year_month . '-' . sprintf('%02d', $r->day));
+            $dow = (int) date('w', $ts);
+            if ($dow === 0 || $dow === 6) continue; // Skip Saturday and Sunday for summary counts
+
             if (!isset($absReasons[$r->employee_id])) {
                 $absReasons[$r->employee_id] = ['with_pay' => 0, 'without_pay' => 0];
                 $absDetails[$r->employee_id] = ['with_pay_days' => [], 'without_pay_days' => []];
@@ -183,6 +198,38 @@ class AdminController extends Controller
             } else {
                 $absReasons[$r->employee_id]['with_pay']++;
                 $absDetails[$r->employee_id]['with_pay_days'][] = ['day' => (int)$r->day, 'reason' => $r->reason];
+            }
+        }
+
+        // Calculate Working Days (excluding weekends and holidays) to accurately default the "Present" count
+        $workingDays = 0;
+        if ($mode === 'yearly') {
+            for ($m = 1; $m <= 12; $m++) {
+                $daysInM = cal_days_in_month(CAL_GREGORIAN, $m, $year);
+                $hols = [];
+                foreach ($db->select("SELECT date_str FROM special_days WHERE date_str LIKE ?", ["$year-" . sprintf('%02d', $m) . "-%"]) as $r) {
+                    $hols[] = (int) date('j', strtotime($r->date_str));
+                }
+                for ($d = 1; $d <= $daysInM; $d++) {
+                    $ts = mktime(0, 0, 0, $m, $d, $year);
+                    $dow = (int) date('w', $ts);
+                    if ($dow !== 0 && $dow !== 6 && !in_array($d, $hols)) {
+                        $workingDays++;
+                    }
+                }
+            }
+        } else {
+            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+            $hols = [];
+            foreach ($db->select("SELECT date_str FROM special_days WHERE date_str LIKE ?", ["$year-" . sprintf('%02d', $month) . "-%"]) as $r) {
+                $hols[] = (int) date('j', strtotime($r->date_str));
+            }
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $ts = mktime(0, 0, 0, $month, $d, $year);
+                $dow = (int) date('w', $ts);
+                if ($dow !== 0 && $dow !== 6 && !in_array($d, $hols)) {
+                    $workingDays++;
+                }
             }
         }
 
@@ -212,7 +259,8 @@ class AdminController extends Controller
             'totalEmp',
             'activeCount',
             'leaveCount',
-            'inactiveCount'
+            'inactiveCount',
+            'workingDays'
         ));
     }
 
@@ -240,6 +288,188 @@ class AdminController extends Controller
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    // ─── GET: Load Attendance Excel for Pre-population ──────────────
+    public function loadAttendanceExcel()
+    {
+        try {
+            // Look for the attendance Excel file in the project root
+            $possiblePaths = [
+                base_path('Report On Attendance, Absences and Tardiness 2025 - 2026 (1).xlsx'),
+                base_path('attendance_report.xlsx'),
+                storage_path('app/attendance_report.xlsx'),
+            ];
+
+            $filePath = null;
+            foreach ($possiblePaths as $p) {
+                if (file_exists($p)) { $filePath = $p; break; }
+            }
+
+            if (!$filePath) {
+                return response()->json(['success' => false, 'message' => 'Attendance Excel file not found on server.']);
+            }
+
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, false);
+
+            // Col map (0-indexed): 0=Station,1=No,2=EmpNo,3=LastName,4=FirstName,5=MiddleName,6=Basic,7=Status,8=OfficialTime
+            $employees = [];
+            $db = $this->getDb();
+            $existingNums = collect($db->select("SELECT emp_number FROM employees"))
+                ->pluck('emp_number')
+                ->map(fn($v) => strtoupper(trim($v)))
+                ->toArray();
+
+            foreach (array_slice($rows, 1) as $row) {
+                $empNo = trim((string)($row[2] ?? ''));
+                $ln    = mb_strtoupper(trim((string)($row[3] ?? '')));
+                $fn    = trim((string)($row[4] ?? ''));
+                $mn    = trim((string)($row[5] ?? ''));
+                $stat  = trim((string)($row[7] ?? 'ACTIVE'));
+                $ot    = trim((string)($row[8] ?? ''));
+                $st    = trim((string)($row[0] ?? ''));
+
+                // Extracted attendance fields
+                $remarks       = trim((string)($row[10] ?? ''));
+                $woPay         = trim((string)($row[11] ?? ''));
+                $tardyCnt      = trim((string)($row[12] ?? ''));
+                $tardyMins     = trim((string)($row[13] ?? ''));
+                $tardyDates    = trim((string)($row[14] ?? ''));
+                $utCnt         = trim((string)($row[15] ?? ''));
+                $utMins        = trim((string)($row[16] ?? ''));
+                $utDates       = trim((string)($row[17] ?? ''));
+                $totalMins     = trim((string)($row[18] ?? ''));
+                $totalConv     = trim((string)($row[19] ?? ''));
+                $totalTardyCnt = trim((string)($row[20] ?? ''));
+
+                // Skip empty rows
+                if (!$empNo && !$ln && !$fn) continue;
+                // Skip rows with no employee number and no name
+                if (!$ln && !$fn) continue;
+
+                $isDuplicate = $empNo && in_array(strtoupper($empNo), $existingNums);
+
+                $employees[] = [
+                    'last_name'     => $ln,
+                    'first_name'    => ucwords(strtolower($fn)),
+                    'middle_name'   => ucwords(strtolower($mn)),
+                    'emp_number'    => strtoupper($empNo),
+                    'station'       => $st,
+                    'official_time' => $ot,
+                    'status'        => strtoupper($stat),
+                    'remarks'       => $remarks,
+                    'wo_pay'        => $woPay,
+                    'tardy'         => $tardyCnt,
+                    'tardy_mins'    => $tardyMins,
+                    'tardy_dates'   => $tardyDates,
+                    'undertime'     => $utCnt,
+                    'ut_mins'       => $utMins,
+                    'ut_dates'      => $utDates,
+                    'total_mins'    => $totalMins,
+                    'total_conv'    => $totalConv,
+                    'total_tardy'   => $totalTardyCnt,
+                    'duplicate'     => $isDuplicate,
+                ];
+            }
+
+            return response()->json([
+                'success'   => true,
+                'employees' => $employees,
+                'total'     => count($employees),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    // ─── UTILITY: Parse complex dates ───────────────────────────────
+    private function parseAndRecordDates($db, $employeeId, $dateStr, $type, $totalMins = 0)
+    {
+        if (!$dateStr) return;
+        
+        // Match format like "3/5,6/2026 - CTO w/pay", "03/10,27/2026", or "03/11-13/2026 - FL w/pay"
+        preg_match_all('/(\d{1,2})\/([\d,\-]+)\/(\d{4})(?:\s*-\s*([^;\n]+))?/', $dateStr, $matches, PREG_SET_ORDER);
+        
+        $totalDays = 0;
+        $parsedDays = [];
+        
+        foreach ($matches as $m) {
+            $month = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+            $year = $m[3];
+            $daysRaw = explode(',', $m[2]);
+            $reason = trim($m[4] ?? '');
+            
+            $days = [];
+            foreach ($daysRaw as $dStr) {
+                if (strpos($dStr, '-') !== false) {
+                    $range = explode('-', $dStr);
+                    if (count($range) == 2) {
+                        $start = (int)$range[0];
+                        $end = (int)$range[1];
+                        if ($end >= $start) {
+                            for ($d = $start; $d <= $end; $d++) {
+                                $days[] = $d;
+                            }
+                        } else {
+                            $days[] = (int)$dStr;
+                        }
+                    } else {
+                        $days[] = (int)$dStr;
+                    }
+                } else {
+                    $days[] = (int)$dStr;
+                }
+            }
+            
+            foreach ($days as $d) {
+                $day = (int)trim($d);
+                $ym = "$year-$month";
+                $parsedDays[] = ['ym' => $ym, 'day' => $day, 'reason' => $reason];
+                $totalDays++;
+            }
+        }
+        
+        if ($totalDays === 0) return;
+        
+        $minsPerDay = $totalMins > 0 ? floor($totalMins / $totalDays) : 0;
+        $remMins = $totalMins > 0 ? $totalMins % $totalDays : 0;
+
+        foreach ($parsedDays as $i => $pd) {
+            $ym = $pd['ym'];
+            $day = $pd['day'];
+            $reason = $pd['reason'];
+            
+            if ($type === 'absent') {
+                $db->table('daily_attendance')->updateOrInsert(
+                    ['employee_id' => $employeeId, 'year_month' => $ym, 'day' => $day],
+                    ['status' => 'absent']
+                );
+                if ($reason) {
+                    $db->table('absence_reasons')->updateOrInsert(
+                        ['employee_id' => $employeeId, 'year_month' => $ym, 'day' => $day],
+                        ['reason' => $reason]
+                    );
+                }
+            } elseif ($type === 'late') {
+                $m = $minsPerDay + ($i === $totalDays - 1 ? $remMins : 0);
+                if ($m > 0) {
+                    $db->table('late_minutes')->updateOrInsert(
+                        ['employee_id' => $employeeId, 'year_month' => $ym, 'day' => $day],
+                        ['minutes' => $m]
+                    );
+                }
+            } elseif ($type === 'undertime') {
+                $m = $minsPerDay + ($i === $totalDays - 1 ? $remMins : 0);
+                if ($m > 0) {
+                    $db->table('undertime_minutes')->updateOrInsert(
+                        ['employee_id' => $employeeId, 'year_month' => $ym, 'day' => $day],
+                        ['minutes' => $m]
+                    );
+                }
+            }
         }
     }
 
@@ -286,14 +516,50 @@ class AdminController extends Controller
 
                     try {
                         $full = $mn ? "$ln, $fn $mn" : "$ln, $fn";
-                        $db->insert(
-                            "INSERT INTO employees (
-                                emp_name, emp_number, station, last_name, first_name, middle_name, `status`,
-                                official_time, without_pay, tardy, tardy_minutes, tardiness_dates, gender
-                             ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, 0.00, 0, 0, '', 'Male')",
-                            [$full, $en, $st, $ln, $fn, $mn, $ot]
-                        );
-                        $this->logAudit('Import Excel', 'Employee', "Imported: $full ($en)");
+                        $wo      = (float)($row['wo_pay'] ?? 0);
+                        $tdy     = (int)($row['tardy'] ?? 0);
+                        $tdyMins = (int)($row['tardy_minutes'] ?? 0);
+                        $tdyDts  = trim($row['tardiness_dates'] ?? '');
+                        $rem     = trim($row['remarks'] ?? '');
+
+                        // Check if employee already exists by emp_number or exact name
+                        $empId = null;
+                        if ($en) {
+                            $ex = $db->selectOne("SELECT id FROM employees WHERE emp_number = ?", [$en]);
+                            if ($ex) $empId = $ex->id;
+                        }
+                        if (!$empId) {
+                            $ex = $db->selectOne("SELECT id FROM employees WHERE last_name = ? AND first_name = ?", [$ln, $fn]);
+                            if ($ex) $empId = $ex->id;
+                        }
+
+                        if ($empId) {
+                            // Update existing employee (sync attendance info)
+                            $db->update(
+                                "UPDATE employees SET 
+                                    without_pay = ?, tardy = ?, tardy_minutes = ?, tardiness_dates = ?, remarks = ?
+                                 WHERE id = ?",
+                                [$wo, $tdy, $tdyMins, $tdyDts, $rem, $empId]
+                            );
+                            $this->logAudit('Import Excel', 'Employee', "Synced existing: $full ($en)");
+                        } else {
+                            // Insert new employee
+                            $db->insert(
+                                "INSERT INTO employees (
+                                    emp_name, emp_number, station, last_name, first_name, middle_name, `status`,
+                                    official_time, without_pay, tardy, tardy_minutes, tardiness_dates, remarks, gender
+                                 ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?, 'Male')",
+                                [$full, $en, $st, $ln, $fn, $mn, $ot, $wo, $tdy, $tdyMins, $tdyDts, $rem]
+                            );
+                            $empId = $db->getPdo()->lastInsertId();
+                            $this->logAudit('Import Excel', 'Employee', "Imported: $full ($en)");
+                        }
+
+                        // Parse and record attendance/absences
+                        $this->parseAndRecordDates($db, $empId, $rem, 'absent');
+                        $this->parseAndRecordDates($db, $empId, $tdyDts, 'late', $tdyMins); 
+                        $this->parseAndRecordDates($db, $empId, trim($row['ut_dates'] ?? ''), 'undertime', (int)($row['ut_minutes'] ?? 0));
+
                         $inserted++;
                     } catch (\Exception $ex) {
                         $errors[] = "Row " . ($i + 1) . " ($en): " . $ex->getMessage();
@@ -636,6 +902,11 @@ class AdminController extends Controller
                 "INSERT INTO remarks_history (employee_id, remark, is_done) VALUES (?, ?, 0)",
                 [$empId, $remark]
             );
+
+            // ── Auto-mark parsed dates as absent in the calendar ──
+            // Parses formats like "03/11-13/2026 - FL w/pay" → marks March 11,12,13 absent
+            $this->parseAndRecordDates($db, $empId, $remark, 'absent');
+
             $this->logAudit('Save Remarks', 'Employee', "Remark added for Emp#$empId");
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
@@ -1218,6 +1489,27 @@ class AdminController extends Controller
             $this->logAudit('Add Holiday', 'Attendance', "Declared '$reason' on $date");
         }
         return response()->json(['success' => true]);
+    }
+
+    // ─── POST: Remove Holiday ───────────────────────────────────────
+    public function removeHoliday(Request $request)
+    {
+        $db = $this->getDb();
+        $date = trim($request->input('holiday_date'));
+        $ym   = trim($request->input('ym'));
+        
+        if ($ym) {
+            $db->delete("DELETE FROM special_days WHERE date_str LIKE ?", ["$ym-%"]);
+            $this->logAudit('Remove Holiday', 'Attendance', "Removed all holidays for $ym");
+            return response()->json(['success' => true]);
+        }
+        
+        if ($date) {
+            $db->delete("DELETE FROM special_days WHERE date_str = ?", [$date]);
+            $this->logAudit('Remove Holiday', 'Attendance', "Removed holiday on $date");
+            return response()->json(['success' => true]);
+        }
+        return response()->json(['success' => false, 'message' => 'No date or month provided']);
     }
 
     // ─── POST: Clear All Month Data ─────────────────────────────────

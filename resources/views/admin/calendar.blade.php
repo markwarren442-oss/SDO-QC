@@ -1043,10 +1043,11 @@
         .print-header {
             display: block !important;
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 0px !important;
             font-size: 11pt;
             line-height: 1.3;
             color: black !important;
+            position: relative;
         }
         .print-header img { width: 75px; height: 75px; margin-bottom: 8px; }
         .print-header-toptext { font-family: Arial, sans-serif; margin-bottom: 12px; }
@@ -1060,10 +1061,18 @@
             font-size: 11pt;
             font-weight: bold;
             text-transform: uppercase;
-            border-top: 1px solid #000;
-            padding-top: 10px;
+            border: 3px solid #000;
+            border-bottom: none !important;
+            padding: 6px 12px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
+        .cal-content-area, .cal-main {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
         /* Table fixes for printing */
         .att-table-card { 
             border: none !important; 
@@ -1083,21 +1092,62 @@
             border-collapse: collapse !important; 
             width: 100% !important; 
             table-layout: auto !important;
-            border: 1px solid black !important;
+            border: 3px solid black !important;
+            box-sizing: border-box !important;
         }
         
-        .att-table thead {
-            display: table-header-group !important;
-        }
-
         .att-table th, .att-table td { 
             border: 1px solid black !important; 
             color: black !important; 
             padding: 2px !important;
             font-size: 8pt !important;
-            position: static !important; /* Disable sticky headers for print */
-            background-clip: padding-box !important; /* Prevents background color from overlapping collapsed borders */
+            position: static !important;
+            box-sizing: border-box !important;
         }
+        
+        .att-table tr:last-child td {
+            border-bottom: 3px solid black !important;
+        }
+
+        .producers-col {
+            position: relative !important;
+            background: white !important;
+            color: black !important;
+            border: 1px solid black !important; 
+            border-right: 3px solid black !important;
+            box-shadow: none !important;
+            min-width: auto !important;
+        }
+        
+        td.producers-col {
+            border-bottom: 3px solid black !important;
+        }
+
+        .producers-sidebar-print { 
+            display: block !important; 
+            position: fixed;
+            top: 285px;
+            right: 0;
+            width: 110px;
+            padding: 6px 8px;
+            text-align: left;
+            white-space: normal;
+            word-break: break-word;
+            font-size: 0.48rem;
+            color: #374151;
+            line-height: 1.3;
+            font-weight: 500;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+        
+        /* Hide the original text in the tbody during print to avoid doubling */
+        tbody .producers-col > div {
+            display: none !important;
+        }
+
+
+
         
         /* Reset header colors */
         .head-main th { 
@@ -1304,9 +1354,12 @@
                         </button>
                         <div style="height: 1px; background: #f1f5f9; margin: 6px 10px;"></div>
                         <button onclick="openHolidayModal()" class="opt-item" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; background: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; color: #f59e0b; cursor: pointer;">
-                            <i class="fas fa-umbrella-beach"></i> Set Holidays
+                            <i class="fas fa-calendar-plus"></i> Set Holidays
                         </button>
-                        <button onclick="confirmClear()" class="opt-item" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; background: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; color: #ef4444; cursor: pointer;">
+                        <button onclick="removeAllHolidays()" class="opt-item" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; background: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; color: #ef4444; cursor: pointer;">
+                            <i class="fas fa-calendar-minus"></i> Remove Holidays
+                        </button>
+                        <button onclick="confirmClear()" class="opt-item" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; background: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; color: #dc2626; cursor: pointer;">
                             <i class="fas fa-trash-alt"></i> Reset Month
                         </button>
                     </div>
@@ -1342,8 +1395,18 @@
 
         @if($mode === 'batch' || ($mode === 'individual' && $empId))
 
+            {{-- PROCEDURES SIDEBAR FOR PRINT (Repeats on every page flawlessly) --}}
+            <div class="producers-sidebar-print" style="display:none;">
+                1. Cross out unnecessary dates e.g.<br>
+                2. All entries shall be based on the individual DTR or Time Card;<br>
+                3. Indicate the presence of the employee by a (/) mark in the date column;<br>
+                4. Enter absences in terms of days in the date column either 1/2 or 1 whole day. Leave absence shall be attached to the attendance report form;<br>
+                5. Enter tardiness in the date column in terms of minutes, halfdays or under times. Enclose the late/halfday/undertime entries by parenthesis; etc.
+            </div>
+
             {{-- PRINT ONLY HEADER (S.P. FORM A) --}}
             <div class="print-header">
+                <div style="position: absolute; top: 0; right: 0; font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; font-style: italic;">S.P. FORM A</div>
                 <img src="{{ asset('logo.png') }}" alt="SDO-QC Logo" onerror="this.style.display='none'">
                 <div class="print-header-toptext">
                     Republic of the Philippines<br>
@@ -1353,9 +1416,9 @@
                 </div>
                 
                 <div class="print-header-meta">
-                    <div class="print-header-meta-left">
-                        <div>NAME OF SCHOOL:</div>
-                        <div style="font-size: 12pt;">DIVISION OFFICE - STATION X</div> {{-- Will be updated via JS/Backend if needed --}}
+                    <div class="print-header-meta-left" style="display:flex; flex-direction:column; gap:6px; justify-content:center;">
+                        <div style="font-weight: 800; font-size: 11pt;">NAME OF SCHOOL: <span style="font-weight:normal;">SCHOOLS DIVISION OFFICE OF QUEZON CITY</span></div>
+                        <div style="font-size: 11pt; font-weight: 800;">STATION: <span style="font-weight:normal;" id="printStationNameDisplay">DIVISION OFFICE - STATION X</span></div>
                     </div>
                     <div class="print-header-meta-center" style="letter-spacing: 1px; margin-top: 15px;">
                         ATTENDANCE REPORT
@@ -1449,6 +1512,9 @@
                             </div>
                         </div>
                     @else
+                        @php
+                            $absReason = $reasons[$empId][$d] ?? '';
+                        @endphp
                         <div class="cal-grid-cell {{ $cellCls }}" id="cell-{{ $d }}">
                             <div class="cell-head">
                                 <div class="cell-dow">{{ $dowStr }}</div>
@@ -1456,13 +1522,20 @@
                             </div>
                             <div>
                                 <select class="cell-select" onchange="updateCellColor(this, '{{ $empId }}', '{{ $d }}', '{{ $ym }}')">
-                                    <option value="" {{ $status === '' ? 'selected' : '' }}>-</option>
-                                    <option value="present" {{ $status === 'present' ? 'selected' : '' }}>Present</option>
+                                    @if($isWeekend)
+                                        <option value="" {{ $status === '' ? 'selected' : '' }}>-</option>
+                                    @endif
+                                    <option value="present" {{ ($status === 'present' || (!$isWeekend && $status === '')) ? 'selected' : '' }}>Present</option>
                                     <option value="absent" {{ $status === 'absent' ? 'selected' : '' }}>Absent</option>
                                     <option value="halfday" {{ $status === 'halfday' ? 'selected' : '' }}>Halfday</option>
                                     <option value="late" {{ $status === 'late' ? 'selected' : '' }}>Late</option>
                                     <option value="undertime" {{ $status === 'undertime' ? 'selected' : '' }}>Undertime</option>
                                 </select>
+                                @if($absReason && ($status === 'absent' || $status === 'halfday'))
+                                    <div style="margin-top:4px; text-align:center; font-size:0.62rem; font-weight:800; color:#dc2626; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2; word-break:break-word;">
+                                        {{ $absReason }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endif
@@ -1500,7 +1573,7 @@
                                 </th>
                             @endfor
                             <th style="width: 60px;" colspan="2" class="att-group-header">ABSENCE</th>
-                            <th rowspan="2" class="producers-col" style="width:110px; min-width:110px; max-width:110px; position:sticky; right:0; z-index:30; background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; font-size:0.48rem; text-align:left; vertical-align:middle; font-weight:800; text-transform:uppercase; letter-spacing:0.2px; line-height:1.15; padding:6px 8px; border-left:2px solid #2563eb; border-right:none; box-shadow:-2px 0 5px rgba(0,0,0,0.05);">
+                            <th rowspan="2" class="producers-col" style="width:110px; min-width:110px; max-width:110px; position:sticky; right:0; z-index:30; background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; font-size:0.48rem; text-align:left; vertical-align:top; font-weight:800; text-transform:uppercase; letter-spacing:0.2px; line-height:1.15; padding:6px 8px; border-left:2px solid #2563eb; border-right:none; box-shadow:-2px 0 5px rgba(0,0,0,0.05);">
                                 PROCEDURES IN <br>ACCOMPLISHING<br>ATTENDANCE REPORT(AR)
                             </th>
                         </tr>
@@ -1532,6 +1605,11 @@
                                     $absWithoutPay = 0;
                                     $empWithPayLogs = []; $empWopLogs = [];
                                     for ($d2 = 1; $d2 <= $daysInMonth; $d2++) {
+                                        // Skip weekends for summary counts
+                                        $ts_check = mktime(0, 0, 0, $month, $d2, $year);
+                                        $dow_check = (int) date('w', $ts_check);
+                                        if ($dow_check === 0 || $dow_check === 6) continue;
+
                                         $rsn = $reasons[$emp->id][$d2] ?? '';
                                         if ($rsn) {
                                             $logEntry = ['day' => $d2, 'type' => $rsn];
@@ -1609,7 +1687,7 @@
                                             } else {
                                                 $cellCls = '';
                                                 $statusMapForSym = ['present' => '/', 'absent' => '1', 'late' => 'L', 'undertime' => 'U', 'halfday' => 'H'];
-                                                $sym = $statusMapForSym[$status] ?? '';
+                                                $sym = $statusMapForSym[$status] ?? '/';
                                                 $fixed = false;
                                             }
                                         @endphp
@@ -1644,6 +1722,9 @@
                                                         class="cell-input"
                                                         onchange="handleCellChange(this, '{{ $emp->id }}', '{{ $d }}')">
                                                 @else
+                                                    @php
+                                                        $dayReason = $reasons[$emp->id][$d] ?? '';
+                                                    @endphp
                                                     @if($fixed)
                                                         @if($isHoliday)
                                                             <div onclick="openHolidayModal({{ $d }}, '{{ addslashes($sym) }}')" style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; width: 100%; height: 100%;">
@@ -1655,13 +1736,13 @@
                                                     @elseif($status === 'present')
                                                         <span class="badge-present">/</span>
                                                     @elseif($status === 'absent')
-                                                        <span class="badge-absent">1</span>
+                                                        <span class="badge-absent" @if($dayReason) title="{{ $dayReason }}" @endif>1</span>
                                                     @elseif($status === 'late')
                                                         <span class="badge-late">L</span>
                                                     @elseif($status === 'undertime')
                                                         <span class="badge-ut">U</span>
                                                     @elseif($status === 'halfday')
-                                                        <span class="badge-absent">½</span>
+                                                        <span class="badge-absent" @if($dayReason) title="{{ $dayReason }}" @endif>½</span>
                                                     @else
                                                         <span style="color:#d1d5db;">·</span>
                                                     @endif
@@ -1763,13 +1844,19 @@
         <form id="holidayForm" data-route="{{ route('admin.calendar.addHoliday') }}" onsubmit="submitForm(event, this.getAttribute('data-route'), 'holidayModal')">
             <div class="form-group"><label>Date</label><input type="date" name="holiday_date" required></div>
             <div class="form-group"><label>Description / Reason</label><input type="text" name="holiday_reason" required placeholder="e.g. Regular Holiday"></div>
-            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
-                <button type="button" class="mbtn mbtn-cancel" onclick="closeModal('holidayModal')">Cancel</button>
-                <button type="submit" class="mbtn mbtn-amber"><i class="fas fa-save"></i> Save Holiday</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+                <button type="button" id="holidayRemoveBtn" class="mbtn" style="background:#fef2f2;color:#ef4444;border:1px solid #fee2e2;display:none;" onclick="removeHolidayFromModal()">
+                    <i class="fas fa-trash-alt"></i> Remove
+                </button>
+                <div style="display:flex;gap:8px;margin-left:auto;">
+                    <button type="button" class="mbtn mbtn-cancel" onclick="closeModal('holidayModal')">Cancel</button>
+                    <button type="submit" class="mbtn mbtn-amber"><i class="fas fa-save"></i> Save Holiday</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
+
 
 {{-- Print Selection Modal --}}
 <div id="printModal" class="custom-overlay">
@@ -2404,12 +2491,21 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function openHolidayModal(day = null, reason = '') {
+        document.getElementById('actionDropdown').style.display = 'none';
         document.getElementById('holidayForm').reset();
+        const removeBtn = document.getElementById('holidayRemoveBtn');
         if (day) {
             const year = '{{ $year }}';
             const month = String('{{ $month }}').padStart(2, '0');
             const dayStr = String(day).padStart(2, '0');
             document.querySelector('#holidayForm [name="holiday_date"]').value = `${year}-${month}-${dayStr}`;
+            if(reason) {
+                removeBtn.style.display = 'inline-block';
+            } else {
+                removeBtn.style.display = 'none';
+            }
+        } else {
+            removeBtn.style.display = 'none';
         }
         if (reason) {
             document.querySelector('#holidayForm [name="holiday_reason"]').value = reason;
@@ -2417,14 +2513,66 @@
         document.getElementById('holidayModal').style.display = 'flex';
     }
 
-    function openPrintModal() {
+    async function removeAllHolidays() {
         document.getElementById('actionDropdown').style.display = 'none';
-        document.getElementById('printStationSelect').value = 'all';
-        document.getElementById('printModal').style.display = 'flex';
+        if (!confirm('Are you sure you want to remove ALL holidays for this month? Cells will return to default.')) return;
+        
+        const fd = new FormData();
+        fd.append('ym', '{{ $ym }}');
+        
+        try {
+            const res = await fetch('{{ route("admin.calendar.removeHoliday") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+                body: fd
+            });
+            const result = await res.json();
+            if (result.success) {
+                window.location.reload();
+            } else {
+                alert(result.message || 'Failed to remove holidays');
+            }
+        } catch (e) {
+            alert('Request failed.');
+        }
+    }
+
+    async function removeHolidayFromModal() {
+        if (!confirm('Are you sure you want to remove this holiday?')) return;
+        const dateInput = document.querySelector('#holidayForm [name="holiday_date"]').value;
+        if (!dateInput) return;
+        
+        const fd = new FormData();
+        fd.append('holiday_date', dateInput);
+        
+        try {
+            const res = await fetch('{{ route("admin.calendar.removeHoliday") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+                body: fd
+            });
+            const result = await res.json();
+            if (result.success) {
+                closeModal('holidayModal');
+                window.location.reload();
+            } else {
+                alert(result.message || 'Failed to remove holiday');
+            }
+        } catch (e) {
+            alert('Request failed.');
+        }
     }
 
     function openPrintModal() {
         document.getElementById('actionDropdown').style.display = 'none';
+        
+        // Sync the print modal station selection with the current page filter
+        const calFilter = document.getElementById('calStationFilter');
+        const printSelect = document.getElementById('printStationSelect');
+        if (calFilter && printSelect) {
+            printSelect.value = calFilter.value || 'all';
+        }
+
         document.getElementById('printModal').style.display = 'flex';
         // Reset extra fields visibility
         ['prep', 'cert', 'ver'].forEach(type => {
@@ -2567,6 +2715,20 @@
         const selectedStation = document.getElementById('printStationSelect').value;
         const calFilter = document.getElementById('calStationFilter');
         
+        const stationDisplay = document.getElementById('printStationNameDisplay');
+        if (stationDisplay) {
+            if (selectedStation === 'all') {
+                const allStationsText = Array.from(document.getElementById('printStationSelect').options)
+                    .filter(opt => opt.value !== 'all')
+                    .map(opt => opt.innerText)
+                    .join(',');
+                stationDisplay.innerText = allStationsText;
+            } else {
+                const selOpt = document.getElementById('printStationSelect').options[document.getElementById('printStationSelect').selectedIndex];
+                stationDisplay.innerText = selOpt.innerText;
+            }
+        }
+
         let originalFilter = '';
         if (calFilter) {
             originalFilter = calFilter.value;

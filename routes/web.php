@@ -31,6 +31,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth.session']], function (
     // POST: Employee CRUD (from index.php)
     Route::post('/employee/add', [AdminController::class, 'addEmployee'])->name('admin.employee.add');
     Route::post('/employee/import', [AdminController::class, 'importExcel'])->name('admin.employee.import');
+    Route::get('/employee/load-attendance-excel', [AdminController::class, 'loadAttendanceExcel'])->name('admin.employee.loadAttendanceExcel');
+
     Route::post('/employee/preview-excel', [AdminController::class, 'previewExcel'])->name('admin.employee.previewExcel');
     Route::get('/employee/template', [AdminController::class, 'downloadTemplate'])->name('admin.employee.template');
     Route::post('/employee/update', [AdminController::class, 'updateEmployee'])->name('admin.employee.update');
@@ -55,6 +57,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth.session']], function (
     Route::post('/calendar/save-batch', [AdminController::class, 'saveBatch'])->name('admin.calendar.saveBatch');
     Route::post('/calendar/quick-absent', [AdminController::class, 'quickMarkAbsent'])->name('admin.calendar.quickAbsent');
     Route::post('/calendar/add-holiday', [AdminController::class, 'addHoliday'])->name('admin.calendar.addHoliday');
+    Route::post('/calendar/remove-holiday', [AdminController::class, 'removeHoliday'])->name('admin.calendar.removeHoliday');
     Route::post('/calendar/clear-month', [AdminController::class, 'clearMonthData'])->name('admin.calendar.clearMonth');
     Route::post('/calendar/save-merge', [AdminController::class, 'saveCellMerge'])->name('admin.calendar.saveMerge');
     Route::post('/calendar/delete-merge', [AdminController::class, 'deleteCellMerge'])->name('admin.calendar.deleteMerge');

@@ -76,6 +76,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth.session']], function (
     Route::post('/profile/update', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
     Route::post('/user/add', [AdminController::class, 'addUser'])->name('admin.user.add');
     Route::post('/user/delete', [AdminController::class, 'deleteUser'])->name('admin.user.delete');
+    Route::post('/user/verify-password', [AdminController::class, 'verifyPassword'])->name('admin.verifyPassword');
 
     // Export
     Route::get('/export/weekly', [ExportController::class, 'weeklyReport'])->name('admin.export.weekly');

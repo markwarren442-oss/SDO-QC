@@ -1194,6 +1194,14 @@
                                             <i class="fas fa-copy"></i> Copy
                                             <span class="copy-all-tooltip">Copied!</span>
                                         </button>
+                                        <button type="button" class="copy-all-btn" title="Edit Employee details"
+                                            style="color: #ea580c; border-color: #ffedd5; background: #fff7ed;"
+                                            data-emp="{{ json_encode($emp) }}"
+                                            onclick="promptEditPassword(this.getAttribute('data-emp'))"
+                                            onmouseover="this.style.background='#ffedd5'; this.style.borderColor='#fdba74'"
+                                            onmouseout="this.style.background='#fff7ed'; this.style.borderColor='#ffedd5'">
+                                            <i class="fas fa-pen-square"></i> Edit
+                                        </button>
                                     </div>
                                 </td>
 
@@ -1669,35 +1677,64 @@
         </div>
     </div>
 
+    {{-- Verify Password Modal --}}
+    <div id="verifyPassModal" class="custom-overlay">
+        <div class="custom-box" style="width:400px; text-align:left; padding:30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0;"><i class="fas fa-lock" style="color:#ef4444;margin-right:8px;"></i>Admin Verification</h2>
+                <button onclick="closeModal('verifyPassModal')" style="border:none; background:#f1f5f9; width:34px; height:34px; border-radius:10px; cursor:pointer; color:#64748b;"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="submitVerifyPassword(event)">
+                <div class="form-group">
+                    <label>Enter Admin Password to proceed:</label>
+                    <input type="password" id="verify_admin_password" required>
+                </div>
+                <div id="verify_pass_error" style="color:#ef4444; font-size:0.8rem; margin-bottom:10px; display:none; font-weight:600;"></div>
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+                    <button type="button" class="modal-btn modal-btn-cancel" onclick="closeModal('verifyPassModal')">Cancel</button>
+                    <button type="submit" class="modal-btn modal-btn-primary"><i class="fas fa-unlock"></i> Verify</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Edit Employee --}}
     <div id="editEmpModal" class="custom-overlay">
-        <div class="custom-box" style="width:800px; text-align:left; padding:30px;">
+        <div class="custom-box" style="width:1000px; text-align:left; padding:30px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="margin:0;"><i class="fas fa-pen" style="color:#f59e0b;margin-right:8px;"></i>Edit Employee</h2>
                 <button onclick="closeModal('editEmpModal')" style="border:none; background:#f1f5f9; width:34px; height:34px; border-radius:10px; cursor:pointer; color:#64748b;"><i class="fas fa-times"></i></button>
             </div>
             <form id="editEmpForm" data-route="{{ route('admin.employee.update') }}" onsubmit="submitForm(event, this.getAttribute('data-route'), 'editEmpModal')">
                 <input type="hidden" name="id" id="edit_emp_id">
-                <div class="form-group">
-                    <label>Status</label>
-                    <select name="status" id="edit_status" required>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                        <option value="OTHERS">OTHERS…</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group"><label>Last Name</label><input type="text" name="last_name" id="edit_last_name" required></div>
+                    <div class="form-group"><label>First Name</label><input type="text" name="first_name" id="edit_first_name" required></div>
                 </div>
-                <div class="form-group" id="custom_status_div" style="display:none;">
-                    <label>Specify Status</label>
-                    <input type="text" name="custom_status" id="custom_status">
+                <div class="form-group"><label>Middle Name</label><input type="text" name="middle_name" id="edit_middle_name"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Employee No.</label><input type="text" name="emp_number" id="edit_emp_number" required></div>
+                    <div class="form-group"><label>Station</label><input type="text" name="station" id="edit_station"></div>
+                    <div class="form-group" style="flex: 1;"><label>Official Time</label><input type="text" name="official_time" id="edit_official_time" placeholder="e.g. 08:00 - 17:00"></div>
                 </div>
-                <div class="form-group">
-                    <label>Official Time</label>
-                    <input type="text" name="official_time" id="edit_official_time" placeholder="e.g. 08:00 - 17:00"
-                        oninput="this.value = this.value.replace(/[a-zA-Z]/g, '')">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" id="edit_status" required>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                            <option value="OTHERS">OTHERS…</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="custom_status_div" style="display:none;">
+                        <label>Specify Status</label>
+                        <input type="text" name="custom_status" id="custom_status">
+                    </div>
                 </div>
+                
                 <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
-                    <button type="button" class="modal-btn modal-btn-cancel"
-                        onclick="closeModal('editEmpModal')">Cancel</button>
+                    <button type="button" class="modal-btn modal-btn-cancel" onclick="closeModal('editEmpModal')">Cancel</button>
                     <button type="submit" class="modal-btn modal-btn-primary"><i class="fas fa-check"></i> Update</button>
                 </div>
             </form>
@@ -2973,17 +3010,63 @@
             document.getElementById('addEmpModal').style.display = 'flex';
         }
 
-        function openEditModal(id, status, officialTime) {
-            document.getElementById('edit_emp_id').value = id;
-            document.getElementById('edit_official_time').value = officialTime;
+        let pendingEditEmp = null;
+        function promptEditPassword(empJson) {
+            pendingEditEmp = empJson;
+            document.getElementById('verify_admin_password').value = '';
+            document.getElementById('verify_pass_error').style.display = 'none';
+            document.getElementById('verifyPassModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('verify_admin_password').focus(), 100);
+        }
+
+        async function submitVerifyPassword(e) {
+            e.preventDefault();
+            const pass = document.getElementById('verify_admin_password').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+            try {
+                const res = await fetch('{{ route("admin.verifyPassword") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                    body: JSON.stringify({ password: pass })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    closeModal('verifyPassModal');
+                    openEditModal(pendingEditEmp);
+                } else {
+                    const err = document.getElementById('verify_pass_error');
+                    err.textContent = data.message || 'Verification failed.';
+                    err.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-unlock"></i> Verify';
+        }
+
+        function openEditModal(empJson) {
+            let emp = JSON.parse(empJson);
+            document.getElementById('edit_emp_id').value = emp.id || '';
+            document.getElementById('edit_last_name').value = emp.last_name || '';
+            document.getElementById('edit_first_name').value = emp.first_name || '';
+            document.getElementById('edit_middle_name').value = emp.middle_name || '';
+            document.getElementById('edit_emp_number').value = emp.emp_number || '';
+            document.getElementById('edit_station').value = emp.station || '';
+            document.getElementById('edit_official_time').value = emp.official_time || '';
+            
+            const reqStatus = emp.status || 'ACTIVE';
             const sel = document.getElementById('edit_status');
             let found = false;
             for (let i = 0; i < sel.options.length; i++) {
-                if (sel.options[i].value === status) { sel.selectedIndex = i; found = true; break; }
+                if (sel.options[i].value === reqStatus) { sel.selectedIndex = i; found = true; break; }
             }
             if (!found) {
                 sel.value = 'OTHERS';
-                document.getElementById('custom_status').value = status;
+                document.getElementById('custom_status').value = reqStatus;
                 document.getElementById('custom_status_div').style.display = 'block';
             } else {
                 document.getElementById('custom_status').value = '';

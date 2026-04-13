@@ -765,11 +765,30 @@ class AdminController extends Controller
     {
         $db = $this->getDb();
         try {
-            $status = $request->input('status');
+            $id = $request->input('id');
+            $status = $request->input('status') ?? 'ACTIVE';
+            $official_time = $request->input('official_time') ?? '';
+            
             if ($status === 'OTHERS' && $request->input('custom_status'))
                 $status = strtoupper(trim($request->input('custom_status')));
-            $db->update("UPDATE employees SET `status`=?, official_time=? WHERE id=?", [$status, $request->input('official_time'), $request->input('id')]);
-            $this->logAudit('Update Employee', 'Employee', "Updated #" . $request->input('id') . " — status: $status");
+
+            if ($request->has('last_name') && $request->has('emp_number')) {
+                // Extended update from modal
+                $last_name = $request->input('last_name') ?? '';
+                $first_name = $request->input('first_name') ?? '';
+                $middle_name = $request->input('middle_name') ?? '';
+                $emp_number = $request->input('emp_number') ?? '';
+                $station = $request->input('station') ?? '';
+
+                $db->update("UPDATE employees SET `status`=?, official_time=?, last_name=?, first_name=?, middle_name=?, emp_number=?, station=? WHERE id=?", 
+                    [$status, $official_time, $last_name, $first_name, $middle_name, $emp_number, $station, $id]);
+            } else {
+                // Simple inline UI update
+                $db->update("UPDATE employees SET `status`=?, official_time=? WHERE id=?", 
+                    [$status, $official_time, $id]);
+            }
+
+            $this->logAudit('Update Employee', 'Employee', "Updated #" . $id . " - status: " . $status);
             return response()->json(['success' => true, 'new_status' => $status]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
@@ -1790,5 +1809,17 @@ class AdminController extends Controller
         $this->logAudit('Delete User', 'System', "Deleted user #$id");
         return response()->json(['success' => true]);
     }
-}
 
+    public function verifyPassword(Request $request)
+    {
+        $userId = session('user_id');
+        $db = $this->getDb();
+        $user = $db->selectOne("SELECT password FROM users WHERE id = ?", [$userId]);
+        
+        if ($user && password_verify($request->input('password'), $user->password)) {
+            return response()->json(['success' => true]);
+        }
+        return response()->json(['success' => false, 'message' => 'Incorrect password.']);
+    }
+
+}

@@ -22,3 +22,16 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+/sdo_qc/
+/.mingit/
+patch*.php
+import*.php
+
+*.xlsx
+~*.xlsx
+temp_schema.txt
+test_*.php
+sample_*.php
+regex_test.php
+composer-setup.php

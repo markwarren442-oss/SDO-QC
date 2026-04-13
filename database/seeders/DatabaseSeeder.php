@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         \Illuminate\Support\Facades\DB::table('users')->insert([
             'username' => 'admin',
             'password' => \Illuminate\Support\Facades\Hash::make('admin123'),
-            'role' => 'Super Admin'
+            'role' => 'Admin'
         ]);
     }
 }

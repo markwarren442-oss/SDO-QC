@@ -136,17 +136,23 @@
             padding: 0 15px;
         }
         .sig-name {
+            display: inline-block;
+            width: 250px;
             font-weight: bold;
             font-size: 10pt;
             border-bottom: 1.5px solid #0f172a;
             margin-bottom: 4px;
             text-transform: uppercase;
             color: #0f172a;
+            text-align: center;
         }
         .sig-pos {
+            display: block;
+            width: 100%;
             font-size: 8pt;
             color: #475569;
             margin-top: 2px;
+            text-align: center;
         }
     </style>
 </head>
@@ -229,22 +235,28 @@
             <table class="sig-names">
                 <tr>
                     <td width="33%">
-                        <div class="sig-name">{{ strtoupper($request->input('prep_name', 'CHRISTINE JOY C. MAAPOY')) }}</div>
-                        <div class="sig-pos">{{ $request->input('prep_pos', 'Administrative Assistant III') }}</div>
-                        @if($request->input('prep_pos2'))<div class="sig-pos">{{ $request->input('prep_pos2') }}</div>@endif
-                        @if($request->input('prep_pos3'))<div class="sig-pos">{{ $request->input('prep_pos3') }}</div>@endif
+                        <div style="margin: 0 auto; width: 250px;">
+                            <div class="sig-name">{{ strtoupper($request->input('prep_name', 'CHRISTINE JOY C. MAAPOY')) }}</div>
+                            <div class="sig-pos">{{ $request->input('prep_pos', 'Administrative Assistant III') }}</div>
+                            @if($request->input('prep_pos2'))<div class="sig-pos">{{ $request->input('prep_pos2') }}</div>@endif
+                            @if($request->input('prep_pos3'))<div class="sig-pos">{{ $request->input('prep_pos3') }}</div>@endif
+                        </div>
                     </td>
                     <td width="34%">
-                        <div class="sig-name">{{ strtoupper($request->input('cert_name', 'MICHELLE A. MAL-IN')) }}</div>
-                        <div class="sig-pos">{{ $request->input('cert_pos', 'HRMO II') }}</div>
-                        @if($request->input('cert_pos2'))<div class="sig-pos">{{ $request->input('cert_pos2') }}</div>@endif
-                        @if($request->input('cert_pos3'))<div class="sig-pos">{{ $request->input('cert_pos3') }}</div>@endif
+                        <div style="margin: 0 auto; width: 250px;">
+                            <div class="sig-name">{{ strtoupper($request->input('cert_name', 'MICHELLE A. MAL-IN')) }}</div>
+                            <div class="sig-pos">{{ $request->input('cert_pos', 'HRMO II') }}</div>
+                            @if($request->input('cert_pos2'))<div class="sig-pos">{{ $request->input('cert_pos2') }}</div>@endif
+                            @if($request->input('cert_pos3'))<div class="sig-pos">{{ $request->input('cert_pos3') }}</div>@endif
+                        </div>
                     </td>
                     <td width="33%">
-                        <div class="sig-name">{{ strtoupper($request->input('ver_name', 'ROSELYN B. SENCIL')) }}</div>
-                        <div class="sig-pos">{{ $request->input('ver_pos', 'HRMO V') }}</div>
-                        @if($request->input('ver_pos2'))<div class="sig-pos">{{ $request->input('ver_pos2') }}</div>@endif
-                        @if($request->input('ver_pos3'))<div class="sig-pos">{{ $request->input('ver_pos3') }}</div>@endif
+                        <div style="margin: 0 auto; width: 250px;">
+                            <div class="sig-name">{{ strtoupper($request->input('ver_name', 'ROSELYN B. SENCIL')) }}</div>
+                            <div class="sig-pos">{{ $request->input('ver_pos', 'HRMO V') }}</div>
+                            @if($request->input('ver_pos2'))<div class="sig-pos">{{ $request->input('ver_pos2') }}</div>@endif
+                            @if($request->input('ver_pos3'))<div class="sig-pos">{{ $request->input('ver_pos3') }}</div>@endif
+                        </div>
                     </td>
                 </tr>
             </table>

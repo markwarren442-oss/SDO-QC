@@ -419,6 +419,9 @@ class ExportController extends Controller
                             $rsn = $reasons[$eid][$d] ?? '';
                             stripos($rsn, 'without pay') !== false ? $absNoPay++ : $absPay++;
                         }
+                    } else {
+                        // Default to '/' if no specific record found for a weekday
+                        $sym = '/';
                     }
 
                     $ws->setCellValue($cell, $sym);

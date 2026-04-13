@@ -88,6 +88,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 8.5pt;
+            table-layout: fixed;
         }
         .att-table th, .att-table td {
             border: 1px solid #cbd5e1;
@@ -99,11 +100,28 @@
             background-color: #f8fafc;
             color: #475569;
         }
-        .col-no { width: 3%; }
-        .col-name { width: 17%; text-align: left !important; padding-left: 6px !important; font-weight: 600; }
-        .col-day { width: 2.1%; font-size: 7.5pt; }
-        .col-abs { width: 4%; font-size: 8pt; }
-        .col-prod { width: 16%; text-align: left !important; padding: 6px !important; font-size: 7.5pt; vertical-align: top; color: #475569; line-height: 1.4; }
+        .col-no { width: 3.5%; }
+        .col-name { width: 19%; text-align: left !important; padding-left: 6px !important; font-weight: 600; }
+        .col-day { width: 2.2%; font-size: 7.5pt; }
+        .col-abs { width: 4.5%; font-size: 8pt; }
+        
+        .procedures-sidebar {
+            float: right;
+            width: 130px;
+            font-size: 6.5pt;
+            color: #475569;
+            line-height: 1.25;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            margin-bottom: 15px;
+            margin-left: 10px;
+        }
+        
+        .att-table-wrap {
+            width: calc(100% - 150px);
+            float: left;
+        }
 
         .sym-L { color: #ea580c; font-weight: bold; }
         .sym-U { color: #b45309; font-weight: bold; }
@@ -210,17 +228,28 @@
             padding: 0 15px;
         }
         .sig-name {
+            display: inline-block;
+            width: 250px;
             font-weight: bold;
             font-size: 10pt;
             border-bottom: 1.5px solid #0f172a;
             margin-bottom: 4px;
             text-transform: uppercase;
             color: #0f172a;
+            text-align: center;
         }
         .sig-pos {
+            display: inline-block;
+            width: 250px;
             font-size: 8pt;
             color: #475569;
             margin-top: 2px;
+            text-align: center;
+        }
+        .sig-names td {
+            vertical-align: top;
+            padding: 0 15px;
+            text-align: center;
         }
     </style>
 </head>
@@ -253,6 +282,17 @@
                 </tr>
             </table>
 
+            <!-- Floating Procedures (Page 1 Only) -->
+            <div class="procedures-sidebar">
+                <div style="font-weight: bold; margin-bottom: 5px; text-decoration: underline; color: #1e293b;">PROCEDURES IN ACCOMPLISHING ATTENDANCE REPORT:</div>
+                1. Cross out unnecessary dates e.g.<br>
+                2. All entries shall be based on the individual DTR or Time Card;<br>
+                3. Indicate the presence of the employee by a (/) mark in the date column;<br>
+                4. Enter absences in terms of days in the date column either 1/2 or 1 whole day. Leave absence shall be attached to the attendance report form;<br>
+                5. Enter tardiness in the date column in terms of minutes, halfdays or under times. Enclose the late/halfday/undertime entries by parenthesis; etc.
+            </div>
+
+            <div class="att-table-wrap">
             <!-- Table -->
             <table class="att-table">
                 <thead>
@@ -263,7 +303,6 @@
                             <th class="col-day">{{ $d }}</th>
                         @endfor
                         <th colspan="2" class="col-abs">Absences</th>
-                        <th rowspan="2" class="col-prod">Producers in Accomplishing Attendance</th>
                     </tr>
                     <tr>
                         @for($d = 1; $d <= 31; $d++)
@@ -349,6 +388,9 @@
                                                 $class = 'sym-A bg-holiday';
                                                 $showCopy = true;
                                             }
+                                        } else {
+                                            // No record found, default to '/'
+                                            $sym = '/';
                                         }
                                     }
                                 @endphp
@@ -373,21 +415,17 @@
                             </td>
                             
                             @if($index === 0)
-                                <td rowspan="{{ $rowCount }}" class="col-prod">
-                                    <strong>Instructions:</strong><br><br>
-                                    Cross out unnecessary dates e.g.<br><br>
-                                    All entries shall be based on the individual DTR or Time Card;<br><br>
-                                    Indicate the presence of the employee by a (/) mark in the date column;<br><br>
-                                    Enter absences in terms of days in the date column either 1/2 or 1 whole day;<br><br>
-                                    Enter tardiness in the date column in terms of minutes, halfdays or under times.
-                                </td>
+                                {{-- Instructions column removed to prevent overflow --}}
                             @endif
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+            </div>
+
 
             <!-- Signatory Footer -->
+            <div style="clear: both;"></div>
             <div class="sig-container">
                 <table class="sig-cert">
                     <tr>
@@ -405,22 +443,22 @@
                 <table class="sig-names">
                     <tr>
                         <td width="33%">
-                            <div class="sig-name">{{ strtoupper($request->input('prep_name', 'CHRISTINE JOY C. MAAPOY')) }}</div>
+                            <div class="sig-name">{{ strtoupper($request->input('prep_name', 'CHRISTINE JOY C. MAAPOY')) }}</div><br>
                             <div class="sig-pos">{{ $request->input('prep_pos', 'Administrative Assistant III') }}</div>
-                            @if($request->input('prep_pos2'))<div class="sig-pos">{{ $request->input('prep_pos2') }}</div>@endif
-                            @if($request->input('prep_pos3'))<div class="sig-pos">{{ $request->input('prep_pos3') }}</div>@endif
+                            @if($request->input('prep_pos2'))<br><div class="sig-pos">{{ $request->input('prep_pos2') }}</div>@endif
+                            @if($request->input('prep_pos3'))<br><div class="sig-pos">{{ $request->input('prep_pos3') }}</div>@endif
                         </td>
                         <td width="34%">
-                            <div class="sig-name">{{ strtoupper($request->input('cert_name', 'MICHELLE A. MAL-IN')) }}</div>
+                            <div class="sig-name">{{ strtoupper($request->input('cert_name', 'MICHELLE A. MAL-IN')) }}</div><br>
                             <div class="sig-pos">{{ $request->input('cert_pos', 'HRMO II') }}</div>
-                            @if($request->input('cert_pos2'))<div class="sig-pos">{{ $request->input('cert_pos2') }}</div>@endif
-                            @if($request->input('cert_pos3'))<div class="sig-pos">{{ $request->input('cert_pos3') }}</div>@endif
+                            @if($request->input('cert_pos2'))<br><div class="sig-pos">{{ $request->input('cert_pos2') }}</div>@endif
+                            @if($request->input('cert_pos3'))<br><div class="sig-pos">{{ $request->input('cert_pos3') }}</div>@endif
                         </td>
                         <td width="33%">
-                            <div class="sig-name">{{ strtoupper($request->input('ver_name', 'ROSELYN B. SENCIL')) }}</div>
+                            <div class="sig-name">{{ strtoupper($request->input('ver_name', 'ROSELYN B. SENCIL')) }}</div><br>
                             <div class="sig-pos">{{ $request->input('ver_pos', 'HRMO V') }}</div>
-                            @if($request->input('ver_pos2'))<div class="sig-pos">{{ $request->input('ver_pos2') }}</div>@endif
-                            @if($request->input('ver_pos3'))<div class="sig-pos">{{ $request->input('ver_pos3') }}</div>@endif
+                            @if($request->input('ver_pos2'))<br><div class="sig-pos">{{ $request->input('ver_pos2') }}</div>@endif
+                            @if($request->input('ver_pos3'))<br><div class="sig-pos">{{ $request->input('ver_pos3') }}</div>@endif
                         </td>
                     </tr>
                 </table>
@@ -455,6 +493,7 @@
                 </tr>
             </table>
 
+            <div class="att-table-wrap">
             <!-- Table -->
             <table class="att-table">
                 <thead>
@@ -465,7 +504,6 @@
                             <th class="col-day">{{ $d }}</th>
                         @endfor
                         <th colspan="2" class="col-abs">Absences</th>
-                        <th rowspan="2" class="col-prod">Producers in Accomplishing Attendance</th>
                     </tr>
                     <tr>
                         @for($d = 1; $d <= 31; $d++)
@@ -492,8 +530,11 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
+
 
             <!-- Signatory Footer -->
+            <div style="clear: both;"></div>
             <div class="sig-container">
                 <table class="sig-cert">
                     <tr>
@@ -511,22 +552,28 @@
                 <table class="sig-names">
                     <tr>
                         <td width="33%">
-                            <div class="sig-name">{{ strtoupper($request->input('prep_name', 'CHRISTINE JOY C. MAAPOY')) }}</div>
-                            <div class="sig-pos">{{ $request->input('prep_pos', 'Administrative Assistant III') }}</div>
-                            @if($request->input('prep_pos2'))<div class="sig-pos">{{ $request->input('prep_pos2') }}</div>@endif
-                            @if($request->input('prep_pos3'))<div class="sig-pos">{{ $request->input('prep_pos3') }}</div>@endif
+                            <div style="margin: 0 auto; width: 250px;">
+                                <div class="sig-name">{{ strtoupper($request->input('prep_name', 'CHRISTINE JOY C. MAAPOY')) }}</div>
+                                <div class="sig-pos">{{ $request->input('prep_pos', 'Administrative Assistant III') }}</div>
+                                @if($request->input('prep_pos2'))<div class="sig-pos">{{ $request->input('prep_pos2') }}</div>@endif
+                                @if($request->input('prep_pos3'))<div class="sig-pos">{{ $request->input('prep_pos3') }}</div>@endif
+                            </div>
                         </td>
                         <td width="34%">
-                            <div class="sig-name">{{ strtoupper($request->input('cert_name', 'MICHELLE A. MAL-IN')) }}</div>
-                            <div class="sig-pos">{{ $request->input('cert_pos', 'HRMO II') }}</div>
-                            @if($request->input('cert_pos2'))<div class="sig-pos">{{ $request->input('cert_pos2') }}</div>@endif
-                            @if($request->input('cert_pos3'))<div class="sig-pos">{{ $request->input('cert_pos3') }}</div>@endif
+                            <div style="margin: 0 auto; width: 250px;">
+                                <div class="sig-name">{{ strtoupper($request->input('cert_name', 'MICHELLE A. MAL-IN')) }}</div>
+                                <div class="sig-pos">{{ $request->input('cert_pos', 'HRMO II') }}</div>
+                                @if($request->input('cert_pos2'))<div class="sig-pos">{{ $request->input('cert_pos2') }}</div>@endif
+                                @if($request->input('cert_pos3'))<div class="sig-pos">{{ $request->input('cert_pos3') }}</div>@endif
+                            </div>
                         </td>
                         <td width="33%">
-                            <div class="sig-name">{{ strtoupper($request->input('ver_name', 'ROSELYN B. SENCIL')) }}</div>
-                            <div class="sig-pos">{{ $request->input('ver_pos', 'HRMO V') }}</div>
-                            @if($request->input('ver_pos2'))<div class="sig-pos">{{ $request->input('ver_pos2') }}</div>@endif
-                            @if($request->input('ver_pos3'))<div class="sig-pos">{{ $request->input('ver_pos3') }}</div>@endif
+                            <div style="margin: 0 auto; width: 250px;">
+                                <div class="sig-name">{{ strtoupper($request->input('ver_name', 'ROSELYN B. SENCIL')) }}</div>
+                                <div class="sig-pos">{{ $request->input('ver_pos', 'HRMO V') }}</div>
+                                @if($request->input('ver_pos2'))<div class="sig-pos">{{ $request->input('ver_pos2') }}</div>@endif
+                                @if($request->input('ver_pos3'))<div class="sig-pos">{{ $request->input('ver_pos3') }}</div>@endif
+                            </div>
                         </td>
                     </tr>
                 </table>
